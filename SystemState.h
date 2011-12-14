@@ -43,6 +43,7 @@ public:
   RunnableQueue &getScheduler() { return scheduler; }
   void setCurrentThread(ThreadState &thread) { currentThread = &thread; }
   void addNode(std::auto_ptr<Node> n);
+  void dump();
   
   bool hasTimeSliceExpired(ticks_t time) const {
     if (scheduler.empty())

@@ -56,6 +56,7 @@ static void printUsage(const char *ProgName) {
 "  --vcd FILE                  Write VCD trace to FILE.\n"
 "  -t                          Enable instruction tracing.\n"
 "  --stats                     Enable xsim-style statistics.\n"
+"  -d                          Dump execution statictics.\n"
 "\n"
 "Peripherals:\n";
   for (PeripheralRegistry::iterator it = PeripheralRegistry::begin(),
@@ -709,6 +710,7 @@ do { \
 #define IMM(Num) (Num)
 #define PC pc
 #define TIME thread->time
+#define COUNT thread->count
 #define TO_PC(addr) (core->physicalAddress(addr) >> 1)
 #define FROM_PC(addr) core->virtualAddress((addr) << 1)
 #define CHECK_PC(addr) ((addr) < (core->ram_size << 1))
@@ -732,7 +734,7 @@ do { \
 } while(0)
 #define STATS(...) \
 do { \
-  if (stats) { \
+  if (xsimstats) { \
     SAVE_CACHED(); \
     Stats::get().updateStats(*thread, __VA_ARGS__); \
   } \
@@ -1040,7 +1042,7 @@ template <bool extrainfo> int
 loop(const char *filename, const LoopbackPorts &loopbackPorts,
      const std::string &vcdFile,
      const PeripheralDescriptorWithPropertiesVector &peripherals,
-     bool tracing, bool stats)
+     bool tracing, bool stats, bool xsimstats)
 {
   std::auto_ptr<SymbolInfo> SI(new SymbolInfo);
   std::set<Core*> coresWithImage;
@@ -1115,7 +1117,7 @@ loop(const char *filename, const LoopbackPorts &loopbackPorts,
     if (tracing) {
       Tracer::get().setTracingEnabled(tracing);
     }
-    if (stats) {
+    if (xsimstats) {
     	//TODO: Actually do stats
     	std::cout << "Doing stats!" << std::endl;
     	//TODO: Get the actual number of cores
@@ -1203,6 +1205,8 @@ loop(const char *filename, const LoopbackPorts &loopbackPorts,
     thread->pc = PC;
     switch (SyscallHandler::doSyscall(*thread, retval)) {
     case SyscallHandler::EXIT:
+      if (stats)
+        statePtr->dump();
       return retval;
       break;
     case SyscallHandler::DESCHEDULE:
@@ -1553,8 +1557,9 @@ main(int argc, char **argv) {
     return 1;
   }
   const char *file = 0;
-  bool tracing = false,
-  	statistics = false;
+  bool tracing = false;
+  bool xsimstats = false;
+  bool stats = false;
   LoopbackPorts loopbackPorts;
   std::string vcdFile;
   std::string arg;
@@ -1564,7 +1569,9 @@ main(int argc, char **argv) {
     if (arg == "-t") {
       tracing = true;
     } else if (arg == "--stats") {
-      statistics = true;
+      xsimstats = true;
+    } else if (arg == "-d") {
+      stats = true;
     } else if (arg == "--vcd") {
       if (i + 1 > argc) {
         printUsage(argv[0]);
@@ -1604,11 +1611,11 @@ main(int argc, char **argv) {
     Tracer::get().setColour(true);
   }
 #endif
-  if (tracing || statistics) {
+  if (tracing || stats || xsimstats) {
     return loop<true>(file, loopbackPorts, vcdFile, peripherals,
-      tracing, statistics);
+      tracing, stats, xsimstats);
   } else {
     return loop<false>(file, loopbackPorts, vcdFile, peripherals,
-      false, false);
+      false, false, false);
   }
 }
