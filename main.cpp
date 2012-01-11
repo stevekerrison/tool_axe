@@ -54,6 +54,7 @@ static void printUsage(const char *ProgName) {
 "  --loopback PORT1 PORT2      Connect PORT1 to PORT2.\n"
 "  --vcd FILE                  Write VCD trace to FILE.\n"
 "  -t                          Enable instruction tracing.\n"
+"  -s                          Enable statistics.\n"
 "\n"
 "Peripherals:\n";
   for (PeripheralRegistry::iterator it = PeripheralRegistry::begin(),
@@ -1027,7 +1028,7 @@ readXE(const char *filename, SymbolInfo &SI,
 typedef std::vector<std::pair<PeripheralDescriptor*, Properties> >
   PeripheralDescriptorWithPropertiesVector;
 
-template <bool tracing> int
+template <bool tracing, bool stats> int
 loop(const char *filename, const LoopbackPorts &loopbackPorts,
      const std::string &vcdFile,
      const PeripheralDescriptorWithPropertiesVector &peripherals)
@@ -1102,6 +1103,10 @@ loop(const char *filename, const LoopbackPorts &loopbackPorts,
   Tracer::get().setSymbolInfo(SI);
   if (tracing) {
     Tracer::get().setTracingEnabled(tracing);
+  }
+  if (stats) {
+  	//TODO: Actually do stats
+  	std::cout << "Doing stats!" << std::endl;
   }
 
   ThreadState *thread = statePtr->getExecutingThread();
@@ -1534,7 +1539,8 @@ main(int argc, char **argv) {
     return 1;
   }
   const char *file = 0;
-  bool tracing = false;
+  bool tracing = false,
+  	statistics = false;
   LoopbackPorts loopbackPorts;
   std::string vcdFile;
   std::string arg;
@@ -1543,6 +1549,8 @@ main(int argc, char **argv) {
     arg = argv[i];
     if (arg == "-t") {
       tracing = true;
+    } else if (arg == "-s") {
+      statistics = true;
     } else if (arg == "--vcd") {
       if (i + 1 > argc) {
         printUsage(argv[0]);
@@ -1583,8 +1591,16 @@ main(int argc, char **argv) {
   }
 #endif
   if (tracing) {
-    return loop<true>(file, loopbackPorts, vcdFile, peripherals);
+  	if (statistics) {
+      return loop<true,true>(file, loopbackPorts, vcdFile, peripherals);
+    } else {
+      return loop<true,false>(file, loopbackPorts, vcdFile, peripherals);
+    }
   } else {
-    return loop<false>(file, loopbackPorts, vcdFile, peripherals);
+    if (statistics) {
+      return loop<false,true>(file, loopbackPorts, vcdFile, peripherals);
+    } else {
+      return loop<false,false>(file, loopbackPorts, vcdFile, peripherals);
+    }
   }
 }
