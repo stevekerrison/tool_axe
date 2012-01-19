@@ -20,6 +20,7 @@
 #include <set>
 #include <map>
 
+#include "Stats.h"
 #include "Trace.h"
 #include "Resource.h"
 #include "Core.h"
@@ -729,6 +730,13 @@ do { \
   SAVE_CACHED(); \
   internalError(*thread, __FILE__, __LINE__); \
 } while(0)
+#define STATS(...) \
+do { \
+  if (stats) { \
+    SAVE_CACHED(); \
+    Stats::get().updateStats(*thread, __VA_ARGS__); \
+  } \
+} while(0)
 #define TRACE(...) \
 do { \
   if (tracing) { \
@@ -1107,6 +1115,8 @@ loop(const char *filename, const LoopbackPorts &loopbackPorts,
   if (stats) {
   	//TODO: Actually do stats
   	std::cout << "Doing stats!" << std::endl;
+  	//TODO: Get the actual number of cores
+  	Stats::get().initStats(1);
   }
 
   ThreadState *thread = statePtr->getExecutingThread();

@@ -703,6 +703,14 @@ emitTrace(Instruction &instruction)
   std::cout << "}\n";
 }
 
+static void emitStats(Instruction &instruction)
+{
+	const std::string &name = instruction.getName();
+	std::cout << "if (stats) {\n";
+	std::cout << "STATS(\"" << name << "\");\n";
+	std::cout << "}\n";
+}
+
 static void
 emitInstDispatch(Instruction &instruction)
 {
@@ -752,6 +760,7 @@ emitInstDispatch(Instruction &instruction)
     std::cout << "uint32_t nextPc = PC + " << size / 2 << ";\n";
   }
   emitTrace(instruction);
+  emitStats(instruction);
 
   // Do operation.
   bool emitEndLabel = false;

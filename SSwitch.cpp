@@ -7,6 +7,7 @@
 #include "Resource.h"
 #include "Node.h"
 #include "SystemState.h"
+#include "Stats.h"
 #include "Trace.h"
 #include <cassert>
 
