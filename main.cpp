@@ -1118,10 +1118,7 @@ loop(const char *filename, const LoopbackPorts &loopbackPorts,
       Tracer::get().setTracingEnabled(tracing);
     }
     if (xsimstats) {
-    	//TODO: Actually do stats
-    	std::cout << "Doing stats!" << std::endl;
-    	//TODO: Get the actual number of cores
-    	Stats::get().initStats(1);
+    	Stats::get().initStats(coresWithImage.size());
     }
   }
 
