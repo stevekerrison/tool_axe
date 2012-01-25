@@ -55,7 +55,7 @@ static void printUsage(const char *ProgName) {
 "  --loopback PORT1 PORT2      Connect PORT1 to PORT2.\n"
 "  --vcd FILE                  Write VCD trace to FILE.\n"
 "  -t                          Enable instruction tracing.\n"
-"  -s                          Enable statistics.\n"
+"  --stats                     Enable xsim-style statistics.\n"
 "\n"
 "Peripherals:\n";
   for (PeripheralRegistry::iterator it = PeripheralRegistry::begin(),
@@ -1036,10 +1036,11 @@ readXE(const char *filename, SymbolInfo &SI,
 typedef std::vector<std::pair<PeripheralDescriptor*, Properties> >
   PeripheralDescriptorWithPropertiesVector;
 
-template <bool tracing, bool stats> int
+template <bool extrainfo> int
 loop(const char *filename, const LoopbackPorts &loopbackPorts,
      const std::string &vcdFile,
-     const PeripheralDescriptorWithPropertiesVector &peripherals)
+     const PeripheralDescriptorWithPropertiesVector &peripherals,
+     bool tracing, bool stats)
 {
   std::auto_ptr<SymbolInfo> SI(new SymbolInfo);
   std::set<Core*> coresWithImage;
@@ -1109,14 +1110,17 @@ loop(const char *filename, const LoopbackPorts &loopbackPorts,
   
   // Initialise tracing
   Tracer::get().setSymbolInfo(SI);
-  if (tracing) {
-    Tracer::get().setTracingEnabled(tracing);
-  }
-  if (stats) {
-  	//TODO: Actually do stats
-  	std::cout << "Doing stats!" << std::endl;
-  	//TODO: Get the actual number of cores
-  	Stats::get().initStats(1);
+  if (extrainfo)
+  {
+    if (tracing) {
+      Tracer::get().setTracingEnabled(tracing);
+    }
+    if (stats) {
+    	//TODO: Actually do stats
+    	std::cout << "Doing stats!" << std::endl;
+    	//TODO: Get the actual number of cores
+    	Stats::get().initStats(1);
+    }
   }
 
   ThreadState *thread = statePtr->getExecutingThread();
@@ -1412,7 +1416,7 @@ loop(const char *filename, const LoopbackPorts &loopbackPorts,
         break;
       case MKMSK_rus:
         OP(1) = makeMask(OP(1));
-        if (!tracing) {
+        if (!extrainfo) {
           opc = LDC_ru6;
         }
         break;
@@ -1559,7 +1563,7 @@ main(int argc, char **argv) {
     arg = argv[i];
     if (arg == "-t") {
       tracing = true;
-    } else if (arg == "-s") {
+    } else if (arg == "--stats") {
       statistics = true;
     } else if (arg == "--vcd") {
       if (i + 1 > argc) {
@@ -1600,17 +1604,11 @@ main(int argc, char **argv) {
     Tracer::get().setColour(true);
   }
 #endif
-  if (tracing) {
-  	if (statistics) {
-      return loop<true,true>(file, loopbackPorts, vcdFile, peripherals);
-    } else {
-      return loop<true,false>(file, loopbackPorts, vcdFile, peripherals);
-    }
+  if (tracing || statistics) {
+    return loop<true>(file, loopbackPorts, vcdFile, peripherals,
+      tracing, statistics);
   } else {
-    if (statistics) {
-      return loop<false,true>(file, loopbackPorts, vcdFile, peripherals);
-    } else {
-      return loop<false,false>(file, loopbackPorts, vcdFile, peripherals);
-    }
+    return loop<false>(file, loopbackPorts, vcdFile, peripherals,
+      false, false);
   }
 }
