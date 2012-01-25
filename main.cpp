@@ -1205,6 +1205,8 @@ loop(const char *filename, const LoopbackPorts &loopbackPorts,
     thread->pc = PC;
     switch (SyscallHandler::doSyscall(*thread, retval)) {
     case SyscallHandler::EXIT:
+      if (xsimstats)
+        Stats::get().dump();
       if (stats)
         statePtr->dump();
       return retval;

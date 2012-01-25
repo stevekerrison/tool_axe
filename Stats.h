@@ -28,7 +28,7 @@ public:
   bool getStatsEnabled() const { return statsEnabled; }
   void initStats(const int cores);
   void updateStats(const ThreadState &t, const char *name);
-  void printTrace();
+  void dump();
   static Stats &get()
   {
     return instance;

@@ -23,17 +23,17 @@ void Stats::updateStats(const ThreadState &t, const char *name) {
   std::map<std::string, long long*>::iterator iter = istats.find(s);
   if (iter == istats.end())
   {
-    long long *x;
-    x = new long long[cores]();
+    long long *x = new long long[cores * NUM_THREADS]();
     istats.insert(std::pair<std::string, long long*>(name,x));
     iter = istats.find(s);
   }
   long long *ts = iter->second;
-  ts[(8 * cid) + tid] += 1;
+  ts[(NUM_THREADS * cid) + tid] += 1;
   return;
 }
 
-void Stats::printTrace() {
+void Stats::dump() {
+  std::cout << "Dumping stats...\n";
   return;
 }
 
