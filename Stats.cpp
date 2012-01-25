@@ -33,7 +33,23 @@ void Stats::updateStats(const ThreadState &t, const char *name) {
 }
 
 void Stats::dump() {
-  std::cout << "Dumping stats...\n";
+  //TODO: Get the chip rev. Hard coded for xsim compatibility for now...
+  std::cout <<
+"InstructionCount:\n"
+"-----------------\n";
+  long long *counts;
+  int threads = cores * NUM_THREADS;
+  for (std::map<std::string, long long*>::iterator iter = istats.begin();
+    iter != istats.end(); iter++)
+  {
+    std::cout << "xs1b_" << iter->first << " -";
+    counts = iter->second;
+    for (int t = 0; t < threads; t += 1)
+    {
+      std::cout << " " << counts[t];
+    }
+    std::cout << "\n";
+  }
   return;
 }
 
