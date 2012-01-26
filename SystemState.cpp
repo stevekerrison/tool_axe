@@ -132,5 +132,6 @@ void SystemState::dump() {
   std::cout << "Instructions per second:      "
     << std::setprecision(2) << opsPerSec
     << " (" << std::setprecision(2) << gOpsPerSec << " GIPS)" << std::endl;
+  std::cout << std::endl;
 }
 

@@ -1202,10 +1202,10 @@ loop(const char *filename, const LoopbackPorts &loopbackPorts,
     thread->pc = PC;
     switch (SyscallHandler::doSyscall(*thread, retval)) {
     case SyscallHandler::EXIT:
-      if (xsimstats)
-        Stats::get().dump();
       if (stats)
         statePtr->dump();
+      if (xsimstats)
+        Stats::get().dump();
       return retval;
       break;
     case SyscallHandler::DESCHEDULE:
