@@ -8,6 +8,7 @@
 #include "Node.h"
 #include "SystemState.h"
 #include "Trace.h"
+#include "Stats.h"
 #include "Exceptions.h"
 #include "BitManip.h"
 #include "SyscallHandler.h"
@@ -314,6 +315,12 @@ do { \
 if (tracing) { \
 Tracer::get().traceEnd(); \
 } \
+} while(0)
+#define STATS(...) \
+do { \
+  if (xsimstats) { \
+    Stats::get().updateStats(THREAD, __VA_ARGS__); \
+  } \
 } while(0)
 #define EMIT_INSTRUCTION_FUNCTIONS
 #include "InstructionGenOutput.inc"

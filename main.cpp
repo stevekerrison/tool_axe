@@ -21,6 +21,7 @@
 #include <map>
 
 #include "Trace.h"
+#include "Stats.h"
 #include "Resource.h"
 #include "Core.h"
 #include "SyscallHandler.h"
@@ -53,6 +54,8 @@ static void printUsage(const char *ProgName) {
 "  --loopback PORT1 PORT2      Connect PORT1 to PORT2.\n"
 "  --vcd FILE                  Write VCD trace to FILE.\n"
 "  -t                          Enable instruction tracing.\n"
+"  --stats                     Enable xsim style stats.\n"
+"  -d                          Dump execution statistics.\n"
 "\n"
 "Peripherals:\n";
   for (PeripheralRegistry::iterator it = PeripheralRegistry::begin(),
@@ -516,11 +519,16 @@ typedef std::vector<std::pair<PeripheralDescriptor*, Properties> >
 int
 loop(const char *filename, const LoopbackPorts &loopbackPorts,
      const std::string &vcdFile,
-     const PeripheralDescriptorWithPropertiesVector &peripherals)
+     const PeripheralDescriptorWithPropertiesVector &peripherals,
+     const bool xsimstats, const bool stats)
 {
   XE xe(filename);
   std::auto_ptr<SystemState> statePtr = readXE(xe, filename);
   SystemState &sys = *statePtr;
+
+  if (xsimstats) {
+    Stats::get().initStats(sys.node_count());
+  }
   
   if (!connectLoopbackPorts(sys, loopbackPorts)) {
     std::exit(1);
@@ -771,6 +779,8 @@ main(int argc, char **argv) {
   }
   const char *file = 0;
   bool tracing = false;
+  bool xsimstats = false;
+  bool stats = false;
   LoopbackPorts loopbackPorts;
   std::string vcdFile;
   std::string arg;
@@ -779,6 +789,10 @@ main(int argc, char **argv) {
     arg = argv[i];
     if (arg == "-t") {
       tracing = true;
+    } else if (arg == "--stats") {
+      xsimstats = true;
+    } else if (arg == "-d") {
+      stats = true;
     } else if (arg == "--vcd") {
       if (i + 1 > argc) {
         printUsage(argv[0]);
@@ -821,5 +835,5 @@ main(int argc, char **argv) {
   if (tracing) {
     Tracer::get().setTracingEnabled(tracing);
   }
-  return loop(file, loopbackPorts, vcdFile, peripherals);
+  return loop(file, loopbackPorts, vcdFile, peripherals, xsimstats, stats);
 }
