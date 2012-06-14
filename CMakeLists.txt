@@ -84,6 +84,8 @@ add_executable(axe
   Register.h
   Trace.h
   Trace.cpp
+  Stats.h
+  Stats.cpp
   BitManip.h
   Config.h
   ScopedArray.h

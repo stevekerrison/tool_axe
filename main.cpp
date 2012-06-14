@@ -526,8 +526,13 @@ loop(const char *filename, const LoopbackPorts &loopbackPorts,
   std::auto_ptr<SystemState> statePtr = readXE(xe, filename);
   SystemState &sys = *statePtr;
 
+  if (stats) {
+    sys.enableStats();
+  }
+
   if (xsimstats) {
-    Stats::get().initStats(sys.node_count());
+	Stats::get().initStats(sys.node_count());
+	Stats::get().setStatsEnabled(true);
   }
   
   if (!connectLoopbackPorts(sys, loopbackPorts)) {

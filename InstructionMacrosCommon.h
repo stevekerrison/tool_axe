@@ -21,5 +21,6 @@
 #define FROM_PC(addr) VIRTUAL_ADDR((addr) << 1)
 #define TO_PC(addr) (PHYSICAL_ADDR(addr) >> 1)
 #define TIME THREAD.time
+#define COUNT THREAD.count
 
 #endif //_InstructionMacrosCommon_h_

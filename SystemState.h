@@ -20,19 +20,22 @@ class SystemState {
   /// The currently executing runnable.
   Runnable *currentRunnable;
   PendingEvent pendingEvent;
+  bool stats;
 
   void completeEvent(Thread &t, EventableResource &res, bool interrupt);
 
 public:
   typedef std::vector<Node*>::iterator node_iterator;
   typedef std::vector<Node*>::const_iterator const_node_iterator;
-  SystemState() : currentRunnable(0) {
+  SystemState() : currentRunnable(0), stats(false) {
     pendingEvent.set = false;
   }
   ~SystemState();
   void finalize();
   RunnableQueue &getScheduler() { return scheduler; }
   void addNode(std::auto_ptr<Node> n);
+  void dump();
+  void enableStats() { stats = true; }
 
   Runnable *getExecutingRunnable() {
     return currentRunnable;

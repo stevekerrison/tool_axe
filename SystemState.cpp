@@ -3,10 +3,12 @@
 // University of Illinois/NCSA Open Source License posted in
 // LICENSE.txt and at <http://github.xcore.com/>
 
+#include <iomanip>
 #include "SystemState.h"
 #include "Node.h"
 #include "Core.h"
 #include "Trace.h"
+#include "Stats.h"
 
 using namespace Register;
 
@@ -68,8 +70,57 @@ int SystemState::run()
       runnable.run(runnable.wakeUpTime);
     }
   } catch (ExitException &ee) {
+    if (stats) {
+      dump();
+    }
+    if (Stats::get().getStatsEnabled())
+    {
+      Stats::get().dump();
+    }
     return ee.getStatus();
   }
   Tracer::get().noRunnableThreads(*this);
   return 1;
+}
+
+void SystemState::dump() {
+  long totalCount = 0;
+  ticks_t maxTime = 0;
+  for (node_iterator nIt=node_begin(), nEnd=node_end(); nIt!=nEnd; ++nIt) {
+    Node &node = **nIt;
+    for (Node::core_iterator cIt=node.core_begin(), cEnd=node.core_end(); 
+        cIt!=cEnd; ++cIt) {
+      Core &core = **cIt;
+      std::cout << "Core " << core.getCoreNumber() << std::endl;
+      std::cout 
+        << std::setw(8) << "Thread" << " "
+        << std::setw(12) << "Time" << " "
+        << std::setw(12) << "Insts" << " "
+        << std::setw(12) << "Insts/cycle" << std::endl;
+      for (int i=0; i<NUM_THREADS; i++) {
+        Thread &thread = core.getThread(i);
+        totalCount += thread.count;
+        maxTime = maxTime > thread.time ? maxTime : thread.time;
+        double ratio = (double) thread.count / (double) thread.time;
+        std::cout 
+          << std::setw(8) << i << " " 
+          << std::setw(12) << thread.time << " "
+          << std::setw(12) << thread.count << " " 
+          << std::setw(12) << std::setprecision(2) << ratio << std::endl;
+      }
+    }
+  }
+  // Assume 10ns cycle (400Mhz clock)
+  double seconds = (double) maxTime / 100000000.0;
+  double opsPerSec = (double) totalCount / seconds;
+  double gOpsPerSec = opsPerSec / 1000000.0;
+  std::cout << std::endl;
+  std::cout << "Total instructions executed:  " << totalCount << std::endl;
+  std::cout << "Total cycles:                 " << maxTime << std::endl;
+  std::cout << "Elapsed time (s):             " 
+    << std::setprecision(2) << seconds << std::endl;
+  std::cout << "Instructions per second:      "
+    << std::setprecision(2) << opsPerSec
+    << " (" << std::setprecision(2) << gOpsPerSec << " GIPS)" << std::endl;
+  std::cout << std::endl;
 }

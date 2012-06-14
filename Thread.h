@@ -113,6 +113,8 @@ public:
   /// The time for the thread. This approximates the XCore's 400 MHz processor
   /// clock.
   ticks_t time;
+  // Instructions executed count
+  long count;
   sr_t sr;
   /// When executing some pseduo instructions placed at the end this holds the
   /// real pc.

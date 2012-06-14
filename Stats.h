@@ -7,6 +7,7 @@
 #define _Stats_h_
 
 #include "TerminalColours.h"
+#include "Thread.h"
 #include <iostream>
 #include <sstream>
 #include <string>

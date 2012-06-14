@@ -669,6 +669,7 @@ public:
   FunctionCodeEmitter(bool isJit) : jit(isJit) {}
   const Instruction *inst;
   void emitCycles();
+  void emitCount();
   void emitRegWriteBack();
   void emitUpdateExecutionFrequency();
   void emitYieldIfTimeSliceExpired();
@@ -702,6 +703,11 @@ void FunctionCodeEmitter::emitBare(const std::string &s)
 void FunctionCodeEmitter::emitCycles()
 {
   std::cout << "THREAD.time += " << inst->getCycles() << ";\n";
+}
+
+void FunctionCodeEmitter::emitCount()
+{
+  std::cout << "COUNT += 1;\n";
 }
 
 void FunctionCodeEmitter::emitRegWriteBack()
@@ -1110,7 +1116,7 @@ emitTrace(Instruction &instruction)
 static void emitStats(Instruction &instruction)
 {
 	const std::string &name = instruction.getName();
-	std::cout << "if (stats) {\n";
+	std::cout << "if (Stats::get().getStatsEnabled()) {\n";
 	std::cout << "STATS(\"" << name << "\");\n";
 	std::cout << "}\n";
 }
@@ -1135,7 +1141,7 @@ static void emitInstFunction(Instruction &inst, bool jit)
   if (jit)
     std::cout << "extern \"C\" ";
   else
-    std::cout << "template <bool extrainfo>\n";
+    std::cout << "template <bool tracing>\n";
   std::cout << "JITReturn " << getInstFunctionName(inst) << '(';
   std::cout << "Thread &thread";
   if (jit) {

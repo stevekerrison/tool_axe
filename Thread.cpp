@@ -318,9 +318,7 @@ Tracer::get().traceEnd(); \
 } while(0)
 #define STATS(...) \
 do { \
-  if (xsimstats) { \
-    Stats::get().updateStats(THREAD, __VA_ARGS__); \
-  } \
+  Stats::get().updateStats(THREAD, __VA_ARGS__); \
 } while(0)
 #define EMIT_INSTRUCTION_FUNCTIONS
 #include "InstructionGenOutput.inc"

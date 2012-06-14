@@ -20,7 +20,7 @@ Stats Stats::instance;
 void Stats::updateStats(const Thread &t, const char *name) {
   std::string s(name);
   int cid = t.getParent().getCoreID(),
-    tid = t.num();
+    tid = t.getID().num();
   std::map<std::string, long long*>::iterator iter = istats.find(s);
   if (iter == istats.end())
   {
