@@ -8,7 +8,7 @@
 
 #include <vector>
 #include <memory>
-#include "ThreadState.h"
+#include "Thread.h"
 #include "RunnableQueue.h"
 
 class Node;
@@ -17,50 +17,34 @@ class ChanEndpoint;
 class SystemState {
   std::vector<Node*> nodes;
   RunnableQueue scheduler;
-  /// The currently executing thread.
-  ThreadState *currentThread;
+  /// The currently executing runnable.
+  Runnable *currentRunnable;
   PendingEvent pendingEvent;
+  bool stats;
 
-  void handleNonThreads() {
-    assert(currentThread == 0);
-    while (!scheduler.empty() &&
-           scheduler.front().getType() != Runnable::THREAD) {
-      Runnable &runnable = scheduler.front();
-      scheduler.pop();
-      runnable.run(runnable.wakeUpTime);
-    }
-  }
-
-  void completeEvent(ThreadState &t, EventableResource &res, bool interrupt);
+  void completeEvent(Thread &t, EventableResource &res, bool interrupt);
 
 public:
   typedef std::vector<Node*>::iterator node_iterator;
   typedef std::vector<Node*>::const_iterator const_node_iterator;
-  SystemState() : currentThread(0) {
+  SystemState() : currentRunnable(0), stats(false) {
     pendingEvent.set = false;
   }
   ~SystemState();
+  void finalize();
   RunnableQueue &getScheduler() { return scheduler; }
-  void setCurrentThread(ThreadState &thread) { currentThread = &thread; }
   void addNode(std::auto_ptr<Node> n);
   void dump();
-  
-  bool hasTimeSliceExpired(ticks_t time) const {
-    if (scheduler.empty())
-      return false;
-    return time > scheduler.front().wakeUpTime;
+  void enableStats() { stats = true; }
+
+  Runnable *getExecutingRunnable() {
+    return currentRunnable;
   }
 
-  void setExecutingThread(ThreadState &thread) {
-    currentThread = &thread;
-  }
-
-  ThreadState *getExecutingThread() {
-    return currentThread;
-  }
+  int run();
   
   /// Schedule a thread.
-  void schedule(ThreadState &thread) {
+  void schedule(Thread &thread) {
     thread.waiting() = false;
     thread.pausedOn = 0;
     scheduler.push(thread, thread.time);
@@ -70,30 +54,8 @@ public:
     scheduler.push(runnable, time);
   }
   
-  ThreadState *deschedule(ThreadState &current);
-
-  ThreadState *deschedule(ThreadState &current, Resource *res)
-  {
-    current.pausedOn = res;
-    return deschedule(current);
-  }
-
-  ThreadState *next(ThreadState &current, ticks_t time) {
-    assert(&current == currentThread);
-    assert(!current.waiting());
-    if (!hasTimeSliceExpired(time))
-      return &current;
-    scheduler.push(current, time);
-    currentThread = 0;
-    handleNonThreads();
-    ThreadState &next = static_cast<ThreadState&>(scheduler.front());
-    currentThread = &next;
-    scheduler.pop();
-    return &next;
-  }
-  
   /// Take an event on a thread. The thread must not be the current thread.
-  void takeEvent(ThreadState &thread, EventableResource &res, bool interrupt)
+  void takeEvent(Thread &thread, EventableResource &res, bool interrupt)
   {
     if (thread.waiting()) {
       if (thread.pausedOn) {
@@ -108,18 +70,13 @@ public:
   /// \param CycleThread Whether to cycle the running thread after the
   ///        event is taken.
   /// \return The new time and pc.
-  ThreadState *takeEvent(ThreadState &current, bool cycleThread = true)
+  void takeEvent(Thread &current)
   {
     current.time = std::max(current.time, pendingEvent.time);
     // TODO this is probably the wrong place for this.
     current.waiting() = false;
     completeEvent(current, *pendingEvent.res, pendingEvent.interrupt);
     pendingEvent.set = false;
-    // This is to ensure one thread can't stave the others.
-    if (cycleThread) {
-      return next(current, current.time);
-    }
-    return &current;
   }
   
   /// Sets a pending event on the current thread.
@@ -137,11 +94,11 @@ public:
     return pendingEvent.set;
   }
 
-  ChanEndpoint *getChanendDest(ResourceID ID);
   node_iterator node_begin() { return nodes.begin(); }
   node_iterator node_end() { return nodes.end(); }
   const_node_iterator node_begin() const { return nodes.begin(); }
   const_node_iterator node_end() const { return nodes.end(); }
+  int node_count() { return nodes.size(); }
 };
 
 #endif // _SystemState_h_

@@ -32,28 +32,29 @@
 #define lseek _lseek
 #endif
 
+using namespace Register;
+
 class SyscallHandlerImpl {
 private:
   const scoped_array<int> fds;
   bool tracing;
-  unsigned coreCount;
-  unsigned doneCount;
-  char *getString(ThreadState &thread, uint32_t address);
-  void *getBuffer(ThreadState &thread, uint32_t address, uint32_t size);
+  unsigned doneSyscallsRequired;
+  char *getString(Thread &thread, uint32_t address);
+  void *getBuffer(Thread &thread, uint32_t address, uint32_t size);
   int getNewFd();
   bool isValidFd(int fd);
   int convertOpenFlags(int flags);
   int convertOpenMode(int mode);
   bool convertLseekType(int whence, int &converted);
-  void doException(const ThreadState &state, uint32_t et, uint32_t ed);
-  
+  void doException(const Thread &state, uint32_t et, uint32_t ed);
+
 public:
   SyscallHandlerImpl();
 
-  void setCoreCount(unsigned count) { coreCount = count; }
-  SyscallHandler::SycallOutcome doSyscall(ThreadState &thread, int &retval);
-  void doException(const ThreadState &thread);
-  
+  void setDoneSyscallsRequired(unsigned count) { doneSyscallsRequired = count; }
+  SyscallHandler::SycallOutcome doSyscall(Thread &thread, int &retval);
+  void doException(const Thread &thread);
+
   static SyscallHandlerImpl instance;
 };
 
@@ -72,6 +73,7 @@ enum SyscallType {
   OSCALL_REMOVE = 11,
   OSCALL_SYSTEM = 12,
   OSCALL_EXCEPTION = 13,
+  OSCALL_IS_SIMULATION = 99
 };
 
 enum LseekType {
@@ -99,7 +101,7 @@ enum OpenFlags {
 const unsigned MAX_FDS = 512;
 
 SyscallHandlerImpl::SyscallHandlerImpl() :
-  fds(new int[MAX_FDS]), tracing(false), coreCount(1), doneCount(0)
+  fds(new int[MAX_FDS]), tracing(false), doneSyscallsRequired(1)
 {
   // Duplicate the standard file descriptors.
   fds[0] = dup(STDIN_FILENO);
@@ -113,35 +115,30 @@ SyscallHandlerImpl::SyscallHandlerImpl() :
 
 /// Returns a pointer to a string in memory at the given address.
 /// Returns 0 if the address is invalid or the string is not null terminated.
-char *SyscallHandlerImpl::getString(ThreadState &thread, uint32_t address)
+char *SyscallHandlerImpl::getString(Thread &thread, uint32_t startAddress)
 {
-  Core &state = thread.getParent();
-  // Perform address translation
-  address = state.physicalAddress(address);
+  Core &core = thread.getParent();
+  if (!core.isValidAddress(startAddress))
+    return 0;
   // Check the string is null terminated
-  uint32_t end = address;
-  for (; end < state.ram_size && state.loadByte(end); end++) {}
-  if (end >= state.ram_size) {
+  uint32_t address = startAddress;
+  uint32_t end = core.getRamSize() + core.ram_base;
+  for (; address < end && core.loadByte(address); address++) {}
+  if (address >= end) {
     return 0;
   }
-  return (char *)&state.byte(address);
+  return (char *)&core.byte(address);
 }
 
 /// Returns a pointer to a buffer in memory of the given size.
 /// Returns 0 if the buffer address is invalid.
 void *SyscallHandlerImpl::
-getBuffer(ThreadState &thread, uint32_t address, uint32_t size)
+getBuffer(Thread &thread, uint32_t address, uint32_t size)
 {
-  Core &state = thread.getParent();
-  // Perform address translation
-  address = state.physicalAddress(address);
-  if (address > state.ram_size) {
+  Core &core = thread.getParent();
+  if (!core.isValidAddress(address) || !core.isValidAddress(address + size))
     return 0;
-  }
-  if (address + size > state.ram_size) {
-    return 0;
-  }
-  return (void *)&state.byte(address);
+  return (void *)&core.byte(address);
 }
 
 /// Either returns an unused number for a file descriptor or -1 if there are no
@@ -213,7 +210,7 @@ bool SyscallHandlerImpl::convertLseekType(int whence, int &converted)
 }
 
 
-void SyscallHandlerImpl::doException(const ThreadState &thread, uint32_t et, uint32_t ed)
+void SyscallHandlerImpl::doException(const Thread &thread, uint32_t et, uint32_t ed)
 {
   std::cout << "Unhandled exception: "
             << Exceptions::getExceptionName(et)
@@ -222,7 +219,7 @@ void SyscallHandlerImpl::doException(const ThreadState &thread, uint32_t et, uin
   thread.dump();
 }
 
-void SyscallHandlerImpl::doException(const ThreadState &thread)
+void SyscallHandlerImpl::doException(const Thread &thread)
 {
   doException(thread, thread.regs[ET], thread.regs[ED]);
 }
@@ -255,7 +252,7 @@ Tracer::getInstance().regWrite(register, value); \
 #define STATS(...) void()
 
 SyscallHandler::SycallOutcome SyscallHandlerImpl::
-doSyscall(ThreadState &thread, int &retval)
+doSyscall(Thread &thread, int &retval)
 {
   switch (thread.regs[R0]) {
   case OSCALL_EXIT:
@@ -264,8 +261,7 @@ doSyscall(ThreadState &thread, int &retval)
     return SyscallHandler::EXIT;
   case OSCALL_DONE:
     TRACE("done");
-    doneCount++;
-    if (doneCount == coreCount) {
+    if (--doneSyscallsRequired == 0) {
       retval = 0;
       return SyscallHandler::EXIT;
     }
@@ -381,15 +377,15 @@ doSyscall(ThreadState &thread, int &retval)
     {
       uint32_t TimeAddr = thread.regs[R1];
       uint32_t Time = (uint32_t)std::time(0);
-      Core &state = thread.getParent();
+      Core &core = thread.getParent();
       if (TimeAddr != 0) {
-        TimeAddr = state.physicalAddress(TimeAddr);
-        if (TimeAddr > state.ram_size || (TimeAddr & 3)) {
+        if (!core.isValidAddress(TimeAddr) || (TimeAddr & 3)) {
           // Invalid address
           thread.regs[R0] = (uint32_t)-1;
           return SyscallHandler::CONTINUE;
         }
-        state.storeWord(Time, TimeAddr);
+        core.storeWord(Time, TimeAddr);
+        core.invalidateWord(TimeAddr);
       }
       thread.regs[R0] = Time;
       return SyscallHandler::CONTINUE;
@@ -421,6 +417,9 @@ doSyscall(ThreadState &thread, int &retval)
       thread.regs[R0] = std::system(command);
       return SyscallHandler::CONTINUE;
     }
+  case OSCALL_IS_SIMULATION:
+    thread.regs[R0] = 1;
+    return SyscallHandler::CONTINUE;
   default:
     std::cout << "Error: unknown system call number: " << thread.regs[R0] << "\n";
     retval = 1;
@@ -430,18 +429,18 @@ doSyscall(ThreadState &thread, int &retval)
 
 SyscallHandlerImpl SyscallHandlerImpl::instance;
 
-void SyscallHandler::setCoreCount(unsigned number)
+void SyscallHandler::setDoneSyscallsRequired(unsigned number)
 {
-  SyscallHandlerImpl::instance.setCoreCount(number);
+  SyscallHandlerImpl::instance.setDoneSyscallsRequired(number);
 }
 
 SyscallHandler::SycallOutcome SyscallHandler::
-doSyscall(ThreadState &thread, int &retval)
+doSyscall(Thread &thread, int &retval)
 {
   return SyscallHandlerImpl::instance.doSyscall(thread, retval);
 }
 
-void SyscallHandler::doException(const ThreadState &thread)
+void SyscallHandler::doException(const Thread &thread)
 {
   return SyscallHandlerImpl::instance.doException(thread);
 }

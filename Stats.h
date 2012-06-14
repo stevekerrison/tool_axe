@@ -6,8 +6,8 @@
 #ifndef _Stats_h_
 #define _Stats_h_
 
-#include "ThreadState.h"
 #include "TerminalColours.h"
+#include "Thread.h"
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -27,7 +27,7 @@ public:
   void setStatsEnabled(bool enable) { statsEnabled = enable; }
   bool getStatsEnabled() const { return statsEnabled; }
   void initStats(const int cores);
-  void updateStats(const ThreadState &t, const char *name);
+  void updateStats(const Thread &t, const char *name);
   void dump();
   static Stats &get()
   {

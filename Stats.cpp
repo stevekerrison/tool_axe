@@ -5,6 +5,7 @@
 
 #include "Stats.h"
 #include "SystemState.h"
+#include "Thread.h"
 #include "Node.h"
 #include "Core.h"
 #include "Resource.h"
@@ -16,10 +17,10 @@
 
 Stats Stats::instance;
 
-void Stats::updateStats(const ThreadState &t, const char *name) {
+void Stats::updateStats(const Thread &t, const char *name) {
   std::string s(name);
   int cid = t.getParent().getCoreID(),
-    tid = t.getID();
+    tid = t.getID().num();
   std::map<std::string, long long*>::iterator iter = istats.find(s);
   if (iter == istats.end())
   {
@@ -56,4 +57,3 @@ void Stats::dump() {
 void Stats::initStats(const int cores) {
   Stats::cores = cores;
 }
-

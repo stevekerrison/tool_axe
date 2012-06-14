@@ -7,12 +7,22 @@
 #include "SystemState.h"
 #include "Node.h"
 #include "Core.h"
+#include "Trace.h"
+#include "Stats.h"
+
+using namespace Register;
 
 SystemState::~SystemState()
 {
-  for (std::vector<Node*>::iterator it = nodes.begin(), e = nodes.end();
-       it != e; ++it) {
+  for (node_iterator it = nodes.begin(), e = nodes.end(); it != e; ++it) {
     delete *it;
+  }
+}
+
+void SystemState::finalize()
+{
+  for (node_iterator it = nodes.begin(), e = nodes.end(); it != e; ++it) {
+    (*it)->finalize();
   }
 }
 
@@ -23,28 +33,8 @@ void SystemState::addNode(std::auto_ptr<Node> n)
   n.release();
 }
 
-ThreadState *SystemState::deschedule(ThreadState &current)
-{
-  assert(&current == currentThread);
-  //std::cout << "Deschedule " << current->id() << "\n";
-  current.waiting() = true;
-  currentThread = 0;
-  handleNonThreads();
-  if (scheduler.empty()) {
-    Tracer::get().noRunnableThreads(*this);
-    current.pc = current.getParent().getNoThreadsAddr();
-    current.waiting() = false;
-    currentThread = &current;
-    return &current;
-  }
-  ThreadState &next = static_cast<ThreadState&>(scheduler.front());
-  currentThread = &next;
-  scheduler.pop();
-  return &next;
-}
-
 void SystemState::
-completeEvent(ThreadState &t, EventableResource &res, bool interrupt)
+completeEvent(Thread &t, EventableResource &res, bool interrupt)
 {
   if (interrupt) {
     t.regs[SSR] = t.sr.to_ulong();
@@ -70,27 +60,27 @@ completeEvent(ThreadState &t, EventableResource &res, bool interrupt)
   }
 }
 
-ChanEndpoint *SystemState::getChanendDest(ResourceID ID)
+int SystemState::run()
 {
-  unsigned coreID = ID.node();
-  // TODO build lookup map.
-  
-  for (node_iterator outerIt = node_begin(), outerE = node_end();
-       outerIt != outerE; ++outerIt) {
-    Node &node = **outerIt;
-    for (Node::core_iterator innerIt = node.core_begin(),
-         innerE = node.core_end(); innerIt != innerE; ++innerIt) {
-      Core &core = **innerIt;
-      if (core.getCoreID() == coreID) {
-        ChanEndpoint *result;
-        bool isLocal = core.getLocalChanendDest(ID, result);
-        assert(isLocal);
-        (void)isLocal;
-        return result;
-      }
+  try {
+    while (!scheduler.empty()) {
+      Runnable &runnable = scheduler.front();
+      currentRunnable = &runnable;
+      scheduler.pop();
+      runnable.run(runnable.wakeUpTime);
     }
+  } catch (ExitException &ee) {
+    if (stats) {
+      dump();
+    }
+    if (Stats::get().getStatsEnabled())
+    {
+      Stats::get().dump();
+    }
+    return ee.getStatus();
   }
-  return 0;
+  Tracer::get().noRunnableThreads(*this);
+  return 1;
 }
 
 void SystemState::dump() {
@@ -108,14 +98,14 @@ void SystemState::dump() {
         << std::setw(12) << "Insts" << " "
         << std::setw(12) << "Insts/cycle" << std::endl;
       for (int i=0; i<NUM_THREADS; i++) {
-        ThreadState &threadState = core.getThread(i).getState();
-        totalCount += threadState.count;
-        maxTime = maxTime > threadState.time ? maxTime : threadState.time;
-        double ratio = (double) threadState.count / (double) threadState.time;
+        Thread &thread = core.getThread(i);
+        totalCount += thread.count;
+        maxTime = maxTime > thread.time ? maxTime : thread.time;
+        double ratio = (double) thread.count / (double) thread.time;
         std::cout 
           << std::setw(8) << i << " " 
-          << std::setw(12) << threadState.time << " "
-          << std::setw(12) << threadState.count << " " 
+          << std::setw(12) << thread.time << " "
+          << std::setw(12) << thread.count << " " 
           << std::setw(12) << std::setprecision(2) << ratio << std::endl;
       }
     }

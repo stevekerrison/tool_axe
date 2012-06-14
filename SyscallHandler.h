@@ -13,9 +13,9 @@ public:
     DESCHEDULE,
     EXIT
   };
-  static void setCoreCount(unsigned number);
-  static SycallOutcome doSyscall(ThreadState &thread, int &retval);
-  static void doException(const ThreadState &thread);
+  static void setDoneSyscallsRequired(unsigned number);
+  static SycallOutcome doSyscall(Thread &thread, int &retval);
+  static void doException(const Thread &thread);
 };
 
 #endif // _SyscallHandler_h_
