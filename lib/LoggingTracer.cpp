@@ -538,7 +538,7 @@ event(const Thread &t, const EventableResource &res, uint32_t pc,
     json["coreName"]    = t.getParent().getCoreName();
     json["thread"]      = t.getNum();
     json["pc"]          = pc;
-    jsonwriter.write(json);
+    out << jsonwriter.write(json);
   } else {
     printThreadName(t);
     red();
@@ -571,7 +571,7 @@ interrupt(const Thread &t, const EventableResource &res, uint32_t pc,
     json["coreName"]    = t.getParent().getCoreName();
     json["thread"]      = t.getNum();
     json["pc"]          = pc;
-    jsonwriter.write(json);
+    out << jsonwriter.write(json);
   } else {
     printThreadName(t);
     red();
@@ -611,24 +611,43 @@ void LoggingTracer::
 syscallBegin(const Thread &t)
 {
   assert(!emittedLineStart);
-  printLinePrefix(t);
-  red();
-  out << " Syscall ";
+  if (traceJson) {
+    json.clear();
+    json["coreID"]      = t.getParent().getCoreID();
+    json["coreName"]    = t.getParent().getCoreName();
+    json["thread"]      = t.getNum();
+  } else {
+    printLinePrefix(t);
+    red();
+    out << " Syscall ";
+  }
 }
 
 void LoggingTracer::syscall(const Thread &t, const std::string &s) {
   syscallBegin(t);
-  out << s << "()";
-  out.changeColor(llvm::raw_ostream::WHITE);
-  printLineEnd();
+  if (traceJson) {
+    json["syscall"] = s;
+    json["arg"] = Json::Value();
+    out << jsonwriter.write(json);
+  } else {
+    out << s << "()";
+    out.changeColor(llvm::raw_ostream::WHITE);
+    printLineEnd();
+  }
 }
 
 void LoggingTracer::syscall(const Thread &t, const std::string &s,
                      uint32_t op0) {
   syscallBegin(t);
-  out << s << '(' << op0 << ')';
-  out.changeColor(llvm::raw_ostream::WHITE);
-  printLineEnd();
+  if (traceJson) {
+    json["syscall"] = s;
+    json["arg"] = op0;
+    out << jsonwriter.write(json);
+  } else {
+    out << s << '(' << op0 << ')';
+    out.changeColor(llvm::raw_ostream::WHITE);
+    printLineEnd();
+  }
 }
 
 void LoggingTracer::dumpThreadSummary(const Core &core)
