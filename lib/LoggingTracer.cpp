@@ -446,15 +446,17 @@ void LoggingTracer::SSwitchRead(const Node &node, uint32_t retAddress,
                                 uint16_t regNum)
 {
   assert(!emittedLineStart);
-  printLinePrefix(node);
-  red();
-  out << " SSwitch read: ";
-  out << "register 0x";
-  out.write_hex(regNum);
-  out << ", reply address 0x";
-  out.write_hex(retAddress);
-  reset();
-  printLineEnd();
+  if (!traceJson) {
+    printLinePrefix(node);
+    red();
+    out << " SSwitch read: ";
+    out << "register 0x";
+    out.write_hex(regNum);
+    out << ", reply address 0x";
+    out.write_hex(retAddress);
+    reset();
+    printLineEnd();
+  }
 }
 
 void LoggingTracer::
