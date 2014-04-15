@@ -461,56 +461,64 @@ void LoggingTracer::
 SSwitchWrite(const Node &node, uint32_t retAddress, uint16_t regNum,
              uint32_t value)
 {
-  assert(!emittedLineStart);
-  printLinePrefix(node);
-  red();
-  out << " SSwitch write: ";
-  out << "register 0x";
-  out.write_hex(regNum);
-  out << ", value 0x";
-  out.write_hex(value);
-  out << ", reply address 0x";
-  out.write_hex(retAddress);
-  reset();
-  printLineEnd();
+  if (!traceJson) {
+    assert(!emittedLineStart);
+    printLinePrefix(node);
+    red();
+    out << " SSwitch write: ";
+    out << "register 0x";
+    out.write_hex(regNum);
+    out << ", value 0x";
+    out.write_hex(value);
+    out << ", reply address 0x";
+    out.write_hex(retAddress);
+    reset();
+    printLineEnd();
+  }
 }
 
 void LoggingTracer::SSwitchNack(const Node &node, uint32_t dest)
 {
-  assert(!emittedLineStart);
-  printLinePrefix(node);
-  red();
-  out << " SSwitch reply: NACK";
-  out << ", destintion 0x";
-  out.write_hex(dest);
-  reset();
-  printLineEnd();
+  if (!traceJson) {
+    assert(!emittedLineStart);
+    printLinePrefix(node);
+    red();
+    out << " SSwitch reply: NACK";
+    out << ", destintion 0x";
+    out.write_hex(dest);
+    reset();
+    printLineEnd();
+  }
 }
 
 void LoggingTracer::SSwitchAck(const Node &node, uint32_t dest)
 {
-  assert(!emittedLineStart);
-  printLinePrefix(node);
-  red();
-  out << " SSwitch reply: ACK";
-  out << ", destintion 0x";
-  out.write_hex(dest);
-  reset();
-  printLineEnd();
+  if (!traceJson) {
+    assert(!emittedLineStart);
+    printLinePrefix(node);
+    red();
+    out << " SSwitch reply: ACK";
+    out << ", destintion 0x";
+    out.write_hex(dest);
+    reset();
+    printLineEnd();
+  }
 }
 
 void LoggingTracer::SSwitchAck(const Node &node, uint32_t data, uint32_t dest)
 {
-  assert(!emittedLineStart);
-  printLinePrefix(node);
-  red();
-  out << " SSwitch reply: ACK";
-  out << ", data 0x";
-  out.write_hex(data);
-  out << ", destintion 0x";
-  out.write_hex(dest);
-  reset();
-  printLineEnd();
+  if (!traceJson) {
+    assert(!emittedLineStart);
+    printLinePrefix(node);
+    red();
+    out << " SSwitch reply: ACK";
+    out << ", data 0x";
+    out.write_hex(data);
+    out << ", destintion 0x";
+    out.write_hex(dest);
+    reset();
+    printLineEnd();
+  }
 }
 
 void LoggingTracer::
@@ -518,15 +526,30 @@ event(const Thread &t, const EventableResource &res, uint32_t pc,
       uint32_t ev)
 {
   assert(!emittedLineStart);
-  printThreadName(t);
-  red();
-  out << " Event caused by ";
-  out << Resource::getResourceName(static_cast<const Resource&>(res).getType());
-  out << " 0x";
-  out.write_hex((uint32_t)res.getID());
-  reset();
-  printRegWrite(ED, ev, true);
-  printLineEnd();
+  if (traceJson) {
+    json.clear();
+    json["event"]       = "event";
+    json["res"]         = Json::UInt64(res.getID());
+    json["type"] =
+      Resource::getResourceName(static_cast<const Resource&>(res).getType());
+    json["ev"]          = ev;
+    json["write"]["ed"] = ev;
+    json["coreID"]      = t.getParent().getCoreID();
+    json["coreName"]    = t.getParent().getCoreName();
+    json["thread"]      = t.getNum();
+    json["pc"]          = pc;
+    jsonwriter.write(json);
+  } else {
+    printThreadName(t);
+    red();
+    out << " Event caused by ";
+    out << Resource::getResourceName(static_cast<const Resource&>(res).getType());
+    out << " 0x";
+    out.write_hex((uint32_t)res.getID());
+    reset();
+    printRegWrite(ED, ev, true);
+    printLineEnd();
+  }
 }
 
 void LoggingTracer::
@@ -534,18 +557,35 @@ interrupt(const Thread &t, const EventableResource &res, uint32_t pc,
           uint32_t ssr, uint32_t spc, uint32_t sed, uint32_t ed)
 {
   assert(!emittedLineStart);
-  printThreadName(t);
-  red();
-  out << " Interrupt caused by ";
-  out << Resource::getResourceName(static_cast<const Resource&>(res).getType());
-  out << " 0x";
-  out.write_hex((uint32_t)res.getID());
-  reset();
-  printRegWrite(ED, ed, true);
-  printRegWrite(SSR, ssr, false);
-  printRegWrite(SPC, spc, false);
-  printRegWrite(SED, sed, false);
-  printLineEnd();
+  if (traceJson) {
+    json.clear();
+    json["event"]       = "interrupt";  
+    json["res"]         = Json::UInt64(res.getID());
+    json["type"] =
+      Resource::getResourceName(static_cast<const Resource&>(res).getType());
+    json["write"]["ed"] = ed;
+    json["write"]["ssr"]= ssr;
+    json["write"]["spc"]= spc;
+    json["write"]["sed"]= sed;
+    json["coreID"]      = t.getParent().getCoreID();
+    json["coreName"]    = t.getParent().getCoreName();
+    json["thread"]      = t.getNum();
+    json["pc"]          = pc;
+    jsonwriter.write(json);
+  } else {
+    printThreadName(t);
+    red();
+    out << " Interrupt caused by ";
+    out << Resource::getResourceName(static_cast<const Resource&>(res).getType());
+    out << " 0x";
+    out.write_hex((uint32_t)res.getID());
+    reset();
+    printRegWrite(ED, ed, true);
+    printRegWrite(SSR, ssr, false);
+    printRegWrite(SPC, spc, false);
+    printRegWrite(SED, sed, false);
+    printLineEnd();
+  }
 }
 
 void LoggingTracer::
