@@ -251,6 +251,7 @@ target_link_libraries(
   ${LIBXSLT_LIBRARIES}
   ${LLVM_LIBRARIES}
   ${LLVM_LDFLAGS}
+  jsoncpp
   )
 
 target_include_directories(

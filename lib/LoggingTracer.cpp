@@ -30,9 +30,10 @@ static llvm::raw_ostream &operator<<(llvm::raw_ostream &out,
   return out << getRegisterName(r);
 }
 
-LoggingTracer::LoggingTracer(bool traceCycles) :
+LoggingTracer::LoggingTracer(bool traceCycles, bool traceJson) :
   traceCycles(traceCycles),
-  useColors(llvm::outs().has_colors()),
+  traceJson(traceJson),
+  useColors(llvm::outs().has_colors() && !traceJson),
   out(llvm::outs()),
   pos(out.tell()),
   thread(nullptr),
@@ -77,8 +78,12 @@ void LoggingTracer::align(unsigned column)
 
 void LoggingTracer::printLineEnd()
 {
-  out << '\n';
-  pos = out.tell();
+  if (traceJson) {
+    out << jsonwriter.write(json);
+  } else {
+    out << '\n';
+    pos = out.tell();
+  }
 }
 
 void LoggingTracer::printThreadName(const Thread &t)
@@ -155,13 +160,27 @@ unsigned LoggingTracer::parseOperandNum(const char *p, const char *&end)
 
 void LoggingTracer::printInstructionLineStart(const Thread &t, uint32_t pc)
 {
-  printLinePrefix(*thread);
-  out << ' ';
-  printThreadPC(t, pc);
-  out << ":";
+  json.clear();
+  if (traceJson) {
+    json["coreID"]     = t.getParent().getCoreID();
+    json["coreName"]   = t.getParent().getCoreName();
+    json["thread"]     = t.getNum();
+    json["pc"]         = pc;
+    json["src"]        = Json::Value();
+    json["dst"]        = Json::Value();
+    json["write"]      = Json::Value();
+    json["imm"]        = Json::Value();
+    json["time"]       = Json::UInt64(t.time);
+  } else {
+    printLinePrefix(*thread);
+    out << ' ';
+    printThreadPC(t, pc);
+    out << ":";
+    
+    // Align
+    align(mnemonicColumn);
+  }
   
-  // Align
-  align(mnemonicColumn);
   
   // Disassemble instruction.
   InstructionOpcode opcode;
@@ -170,94 +189,169 @@ void LoggingTracer::printInstructionLineStart(const Thread &t, uint32_t pc)
   const InstructionProperties &properties =
   instructionProperties[opcode];
   
-  // Special cases.
-  // TODO remove this by describing tsetmr as taking an immediate?
-  if (opcode == InstructionOpcode::TSETMR_2r) {
-    out << "tsetmr ";
-    printDestRegister(getOperandRegister(properties, ops, 0));
-    out << ", ";
-    printSrcRegister(getOperandRegister(properties, ops, 1));
-    return;
-  }
-  if (opcode == InstructionOpcode::ADD_2rus &&
-      getOperand(properties, ops, 2) == 0) {
-    out << "mov ";
-    printDestRegister(getOperandRegister(properties, ops, 0));
-    out << ", ";
-    printSrcRegister(getOperandRegister(properties, ops, 1));
-    return;
-  }
-  
   const char *fmt = instructionTraceInfo[opcode].string;
-  for (const char *p = fmt; *p != '\0'; ++p) {
-    if (*p != '%') {
-      out << *p;
-      continue;
+  if (traceJson) {
+    unsigned int iop;
+    // Special cases.
+    // TODO remove this by describing tsetmr as taking an immediate?
+    if (opcode == InstructionOpcode::TSETMR_2r) {
+      json["instr"] = "TSETMR_2r";
+      iop = getOperandRegister(properties, ops, 0);
+      json["dst"][std::to_string(iop)] = thread->regs[iop];
+      iop = getOperandRegister(properties, ops, 1);
+      json["src"][std::to_string(iop)] = thread->regs[iop];
+      return;
     }
-    ++p;
-    assert(*p != '\0');
-    if (*p == '%') {
-      out << '%';
-      continue;
-    }
-    enum {
-      RELATIVE_NONE,
-      DP_RELATIVE,
-      CP_RELATIVE,
-    } relType = RELATIVE_NONE;
-    if (*p == '{') {
-      if (*(p + 1) == 'd') {
-        assert(std::strncmp(p, "{dp}", 4) == 0);
-        relType = DP_RELATIVE;
-        p += 4;
-      } else {
-        assert(std::strncmp(p, "{cp}", 4) == 0);
-        relType = CP_RELATIVE;
-        p += 4;
+    //No mov special case for JSON, we want the real mnemonic.
+    
+    json["instr"] = instructionTraceInfo[opcode].arch_mnemonic;
+    for (const char *p = fmt; *p != '\0'; ++p) {
+      if (*p != '%') {
+        continue;
+      }
+      ++p;
+      assert(*p != '\0');
+      if (*p == '%') {
+        continue;
+      }
+      enum {
+        RELATIVE_NONE,
+        DP_RELATIVE,
+        CP_RELATIVE,
+      } relType = RELATIVE_NONE;
+      if (*p == '{') {
+        if (*(p + 1) == 'd') {
+          assert(std::strncmp(p, "{dp}", 4) == 0);
+          relType = DP_RELATIVE;
+          p += 4;
+        } else {
+          assert(std::strncmp(p, "{cp}", 4) == 0);
+          relType = CP_RELATIVE;
+          p += 4;
+        }
+      }
+      const char *endp;
+      unsigned value = parseOperandNum(p, endp);
+      p = endp - 1;
+      assert(value >= 0 && value < properties.getNumOperands());
+      switch (properties.getOperandType(value)) {
+      default: assert(0 && "Unexpected operand type");
+      case OperandProperties::out:
+        iop = getOperandRegister(properties, ops, value);
+        json["dst"][std::to_string(iop)] = thread->regs[iop];
+        break;
+      case OperandProperties::in:
+        iop = getOperandRegister(properties, ops, value);
+        json["src"][std::to_string(iop)] = thread->regs[iop];
+        break;
+      case OperandProperties::inout:
+        iop = getOperandRegister(properties, ops, value);
+        json["src"][std::to_string(iop)] = thread->regs[iop];
+        json["src"][std::to_string(iop)] = thread->regs[iop];
+        break;
+      case OperandProperties::imm:
+        switch (relType) {
+        case RELATIVE_NONE:
+        case CP_RELATIVE:
+        case DP_RELATIVE:
+          json["imm"] = getOperand(properties, ops, value);
+          break;
+        }
+        break;
       }
     }
-    const char *endp;
-    unsigned value = parseOperandNum(p, endp);
-    p = endp - 1;
-    assert(value >= 0 && value < properties.getNumOperands());
-    switch (properties.getOperandType(value)) {
-    default: assert(0 && "Unexpected operand type");
-    case OperandProperties::out:
-      printDestRegister(getOperandRegister(properties, ops, value));
-      break;
-    case OperandProperties::in:
-      printSrcRegister(getOperandRegister(properties, ops, value));
-      break;
-    case OperandProperties::inout:
-      printSrcDestRegister(getOperandRegister(properties, ops, value));
-      break;
-    case OperandProperties::imm:
-      switch (relType) {
-      case RELATIVE_NONE:
-        printImm(getOperand(properties, ops, value));
+  } else {
+    // Special cases.
+    // TODO remove this by describing tsetmr as taking an immediate?
+    if (opcode == InstructionOpcode::TSETMR_2r) {
+      out << "tsetmr ";
+      printDestRegister(getOperandRegister(properties, ops, 0));
+      out << ", ";
+      printSrcRegister(getOperandRegister(properties, ops, 1));
+      return;
+    }
+    if (opcode == InstructionOpcode::ADD_2rus &&
+        getOperand(properties, ops, 2) == 0) {
+      out << "mov ";
+      printDestRegister(getOperandRegister(properties, ops, 0));
+      out << ", ";
+      printSrcRegister(getOperandRegister(properties, ops, 1));
+      return;
+    }
+    for (const char *p = fmt; *p != '\0'; ++p) {
+      if (*p != '%') {
+        out << *p;
+        continue;
+      }
+      ++p;
+      assert(*p != '\0');
+      if (*p == '%') {
+        out << '%';
+        continue;
+      }
+      enum {
+        RELATIVE_NONE,
+        DP_RELATIVE,
+        CP_RELATIVE,
+      } relType = RELATIVE_NONE;
+      if (*p == '{') {
+        if (*(p + 1) == 'd') {
+          assert(std::strncmp(p, "{dp}", 4) == 0);
+          relType = DP_RELATIVE;
+          p += 4;
+        } else {
+          assert(std::strncmp(p, "{cp}", 4) == 0);
+          relType = CP_RELATIVE;
+          p += 4;
+        }
+      }
+      const char *endp;
+      unsigned value = parseOperandNum(p, endp);
+      p = endp - 1;
+      assert(value >= 0 && value < properties.getNumOperands());
+      switch (properties.getOperandType(value)) {
+      default: assert(0 && "Unexpected operand type");
+      case OperandProperties::out:
+        printDestRegister(getOperandRegister(properties, ops, value));
         break;
-      case CP_RELATIVE:
-        printCPRelOffset(getOperand(properties, ops, value));
+      case OperandProperties::in:
+        printSrcRegister(getOperandRegister(properties, ops, value));
         break;
-      case DP_RELATIVE:
-        printDPRelOffset(getOperand(properties, ops, value));
+      case OperandProperties::inout:
+        printSrcDestRegister(getOperandRegister(properties, ops, value));
+        break;
+      case OperandProperties::imm:
+        switch (relType) {
+        case RELATIVE_NONE:
+          printImm(getOperand(properties, ops, value));
+          break;
+        case CP_RELATIVE:
+          printCPRelOffset(getOperand(properties, ops, value));
+          break;
+        case DP_RELATIVE:
+          printDPRelOffset(getOperand(properties, ops, value));
+          break;
+        }
         break;
       }
-      break;
     }
   }
 }
 
 void LoggingTracer::printRegWrite(Register::Reg reg, uint32_t value, bool first)
 {
-  if (first) {
-    align(regWriteColumn);
-    out << "# ";
+  if (traceJson) {
+    json["write"][std::to_string(reg)] = value;
   } else {
-    out << ", ";
+    if (first) {
+      align(regWriteColumn);
+      out << "# ";
+    } else {
+      out << ", ";
+    }
+    out << reg << "=0x";
+    out.write_hex(value);
   }
-  out << reg << "=0x";
-  out.write_hex(value);
 }
 
 void LoggingTracer::printImm(uint32_t op) {

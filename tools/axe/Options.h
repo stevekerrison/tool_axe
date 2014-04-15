@@ -31,6 +31,7 @@ struct Options {
   std::string vcdFile;
   bool tracing;
   bool traceCycles;
+  bool traceJson;
   bool time;
   bool stats;
   bool warnPacketOvertake;

@@ -9,6 +9,7 @@
 namespace axe {
   struct InstructionTraceInfo {
     const char *string;
+    const char *arch_mnemonic;
   };
   
   extern const InstructionTraceInfo instructionTraceInfo[];

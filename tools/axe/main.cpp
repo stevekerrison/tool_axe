@@ -137,7 +137,7 @@ createTracerFromOptions(const Options &options)
 {
   std::vector<Tracer *> tracers;
   if (options.tracing) {
-    tracers.push_back(new LoggingTracer(options.traceCycles));
+    tracers.push_back(new LoggingTracer(options.traceCycles, options.traceJson));
   }
   if (options.stats) {
     tracers.push_back(new StatsTracer);
@@ -186,7 +186,7 @@ loop(const Options &options)
   std::auto_ptr<Tracer> tracer = createTracerFromOptions(options);
   std::auto_ptr<SystemState> statePtr = xeReader.readConfig(tracer);
   if (!options.tracing)
-    statePtr->setExitTracer(std::auto_ptr<Tracer>(new LoggingTracer(false)));
+    statePtr->setExitTracer(std::auto_ptr<Tracer>(new LoggingTracer(false, false)));
   PortAliases portAliases;
   xeReader.readPortAliases(portAliases);
   SystemState &sys = *statePtr;

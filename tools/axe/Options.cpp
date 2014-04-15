@@ -52,6 +52,7 @@ static void printUsage(const char *ProgName) {
   "  --max-cycles <n>            Exit after <n> cycles\n"
   "  -t                          Enable instruction tracing.\n"
   "  --trace-cycles              Display cycle count when tracing.\n"
+  "  --trace-json                Trace in JSON format.\n"
   "  --time                      Display elapsed time on exit.\n"
   "  --stats                     Display simulator statistics on exit.\n"
   "  --warn-packet-overtake      Warn about possible packet overtaking.\n"
@@ -205,6 +206,8 @@ void Options::parse(int argc, char **argv)
       tracing = true;
     } else if (arg == "--trace-cycles") {
       traceCycles = true;
+    } else if (arg == "--trace-json") {
+      traceJson = true;
     } else if (arg == "--time") {
       time = true;
     } else if (arg == "--stats") {

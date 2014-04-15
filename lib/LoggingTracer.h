@@ -12,6 +12,7 @@
 #include "Register.h"
 #include <string>
 #include <memory>
+#include <jsoncpp/json/json.h>
 
 namespace llvm {
   class raw_ostream;
@@ -26,6 +27,9 @@ namespace axe {
   class LoggingTracer : public Tracer {
   private:
     bool traceCycles;
+    bool traceJson;
+    Json::Value json;
+    Json::FastWriter jsonwriter;
     bool useColors;
     llvm::raw_ostream &out;
     uint64_t pos;
@@ -63,7 +67,7 @@ namespace axe {
     
     void syscallBegin(const Thread &t);
   public:
-    LoggingTracer(bool traceCycles);
+    LoggingTracer(bool traceCycles, bool traceJson);
 
     void attach(const SystemState &systemState) override;
 

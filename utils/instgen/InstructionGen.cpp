@@ -1403,7 +1403,8 @@ static void emitInstTraceInfo()
     if (inst->getFormat().empty()) {
       std::cout << "  { nullptr }";
     } else {
-      std::cout << "  { " << quote(inst->getFormat()) << " }";
+      std::cout << "  { " << quote(inst->getFormat()) << ", "
+        << quote(inst->getName()) << " }";
     }
     needComma = true;
   }
