@@ -167,9 +167,9 @@ void LoggingTracer::printInstructionLineStart(const Thread &t, uint32_t pc)
     json["coreName"]   = t.getParent().getCoreName();
     json["thread"]     = t.getNum();
     json["pc"]         = pc;
-    json["src"]        = Json::Value();
-    json["dst"]        = Json::Value();
-    json["write"]      = Json::Value();
+    json["src"]        = Json::arrayValue;
+    json["dst"]        = Json::arrayValue;
+    json["write"]      = Json::arrayValue;
     json["imm"]        = Json::Value();
     json["time"]       = Json::UInt64(t.time);
     json["fn"]         = sym->name;
@@ -199,10 +199,14 @@ void LoggingTracer::printInstructionLineStart(const Thread &t, uint32_t pc)
     // TODO remove this by describing tsetmr as taking an immediate?
     if (opcode == InstructionOpcode::TSETMR_2r) {
       json["instr"] = "TSETMR_2r";
+      Json::Value dst = Json::Value();
       iop = getOperandRegister(properties, ops, 0);
-      json["dst"][std::to_string(iop)] = thread->regs[iop];
+      dst[std::to_string(iop)] = thread->regs[iop];
+      Json::Value src = Json::Value();
       iop = getOperandRegister(properties, ops, 1);
-      json["src"][std::to_string(iop)] = thread->regs[iop];
+      src[std::to_string(iop)] = thread->regs[iop];
+      json["dst"].append(dst);
+      json["src"].append(src);
       return;
     }
     //No mov special case for JSON, we want the real mnemonic.
@@ -240,18 +244,30 @@ void LoggingTracer::printInstructionLineStart(const Thread &t, uint32_t pc)
       switch (properties.getOperandType(value)) {
       default: assert(0 && "Unexpected operand type");
       case OperandProperties::out:
+      {
         iop = getOperandRegister(properties, ops, value);
-        json["dst"][std::to_string(iop)] = thread->regs[iop];
+        Json::Value jnode = Json::Value();
+        jnode[std::to_string(iop)] = thread->regs[iop];
+        json["dst"].append(jnode);
         break;
+      }
       case OperandProperties::in:
+      {
         iop = getOperandRegister(properties, ops, value);
-        json["src"][std::to_string(iop)] = thread->regs[iop];
+        Json::Value jnode = Json::Value();
+        jnode[std::to_string(iop)] = thread->regs[iop];
+        json["src"].append(jnode);
         break;
+      }
       case OperandProperties::inout:
+      {
         iop = getOperandRegister(properties, ops, value);
-        json["src"][std::to_string(iop)] = thread->regs[iop];
-        json["src"][std::to_string(iop)] = thread->regs[iop];
+        Json::Value jnode = Json::Value();
+        jnode[std::to_string(iop)] = thread->regs[iop];
+        json["dst"].append(jnode);
+        json["src"].append(jnode);
         break;
+      }
       case OperandProperties::imm:
         switch (relType) {
         case RELATIVE_NONE:
@@ -344,7 +360,9 @@ void LoggingTracer::printInstructionLineStart(const Thread &t, uint32_t pc)
 void LoggingTracer::printRegWrite(Register::Reg reg, uint32_t value, bool first)
 {
   if (traceJson) {
-    json["write"][std::to_string(reg)] = value;
+    Json::Value jnode = Json::Value();
+    jnode[std::to_string(reg)] = value;
+    json["write"].append(jnode);
   } else {
     if (first) {
       align(regWriteColumn);
