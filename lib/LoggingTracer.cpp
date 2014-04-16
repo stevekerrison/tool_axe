@@ -162,6 +162,7 @@ void LoggingTracer::printInstructionLineStart(const Thread &t, uint32_t pc)
 {
   json.clear();
   if (traceJson) {
+    const ElfSymbol *sym = symInfo->getFunctionSymbol(&t.getParent(), pc);
     json["coreID"]     = t.getParent().getCoreID();
     json["coreName"]   = t.getParent().getCoreName();
     json["thread"]     = t.getNum();
@@ -171,6 +172,8 @@ void LoggingTracer::printInstructionLineStart(const Thread &t, uint32_t pc)
     json["write"]      = Json::Value();
     json["imm"]        = Json::Value();
     json["time"]       = Json::UInt64(t.time);
+    json["fn"]         = sym->name;
+    json["fnoffset"]   = pc - sym->value;
   } else {
     printLinePrefix(*thread);
     out << ' ';
