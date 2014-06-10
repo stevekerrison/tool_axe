@@ -20,6 +20,7 @@ Options::Options() :
   file(0),
   tracing(false),
   traceJson(false),
+  traceCycles(false),
   time(false),
   stats(false),
   warnPacketOvertake(false),

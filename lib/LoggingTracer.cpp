@@ -654,7 +654,7 @@ void LoggingTracer::syscall(const Thread &t, const std::string &s) {
     out << jsonwriter.write(json);
   } else {
     out << s << "()";
-    out.changeColor(llvm::raw_ostream::WHITE);
+    reset();
     printLineEnd();
   }
 }
@@ -668,7 +668,7 @@ void LoggingTracer::syscall(const Thread &t, const std::string &s,
     out << jsonwriter.write(json);
   } else {
     out << s << '(' << op0 << ')';
-    out.changeColor(llvm::raw_ostream::WHITE);
+    reset();
     printLineEnd();
   }
 }
