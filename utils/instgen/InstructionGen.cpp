@@ -178,7 +178,7 @@ public:
     format(f),
     code(c),
     cycles(cy),
-    yieldBefore(false),
+    yieldBefore(true),
     canEvent(false),
     unimplemented(false),
     custom(false),
