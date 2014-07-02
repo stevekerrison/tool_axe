@@ -6,10 +6,13 @@
 #ifndef _InstructionTraceInfo_h_
 #define _InstructionTraceInfo_h_
 
+#include <cstdint>
+
 namespace axe {
   struct InstructionTraceInfo {
     const char *string;
     const char *arch_mnemonic;
+    const uint8_t size;
   };
   
   extern const InstructionTraceInfo instructionTraceInfo[];

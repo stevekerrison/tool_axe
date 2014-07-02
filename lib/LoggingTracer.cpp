@@ -174,6 +174,8 @@ void LoggingTracer::printInstructionLineStart(const Thread &t, uint32_t pc)
     json["time"]       = Json::UInt64(t.time);
     json["fn"]         = sym->name;
     json["fnoffset"]   = pc - sym->value;
+    json["ibuf"]       = Json::UInt(t.ibuf.size());
+    json["fnop"]       = t.fnop;
   } else {
     printLinePrefix(*thread);
     out << ' ';
@@ -212,6 +214,7 @@ void LoggingTracer::printInstructionLineStart(const Thread &t, uint32_t pc)
     //No mov special case for JSON, we want the real mnemonic.
     
     json["instr"] = instructionTraceInfo[opcode].arch_mnemonic;
+    json["size"] = instructionTraceInfo[opcode].size;
     for (const char *p = fmt; *p != '\0'; ++p) {
       if (*p != '%') {
         continue;

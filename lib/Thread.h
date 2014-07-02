@@ -8,6 +8,7 @@
 
 #include <stdint.h>
 #include <bitset>
+#include <queue>
 #include "Runnable.h"
 #include "RunnableQueue.h"
 #include "Resource.h"
@@ -104,6 +105,10 @@ public:
   /// The time for the thread. This approximates the XCore's 400 MHz processor
   /// clock.
   ticks_t time;
+  /// Model the instruction buffer
+  std::queue<uint32_t> ibuf;
+  /// Track if we need to FNOP
+  bool fnop;
   sr_t sr;
   /// When executing some pseduo instructions placed at the end this holds the
   /// real pc.

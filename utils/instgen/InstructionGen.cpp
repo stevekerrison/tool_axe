@@ -739,6 +739,15 @@ void FunctionCodeEmitter::emitRegWriteBack()
   }
 
   std::cout << "THREAD.pc = nextPc;\n";
+  std::cout << "uint32_t tgt = THREAD.getRealPc() & ~0x3;\n"
+            << "if (doFetch && THREAD.ibuf.size() < 2) {\n"
+            << " if (THREAD.ibuf.size() == 1) {\n"
+            << "  THREAD.ibuf.push(THREAD.ibuf.front() == tgt ? tgt + 4 : tgt);\n"
+            << " } else {\n"
+            << "  THREAD.ibuf.push(tgt);\n"
+            << " }\n"
+            << "}\n"
+            << "if (THREAD.ibuf.size() > 0 && THREAD.ibuf.front() != tgt) { THREAD.ibuf.pop(); }\n";
   if (writeSR) {
     std::cout << "if (THREAD.setSR(op" << numSR << ")) {\n";
     std::cout << "  THREAD.takeEvent();\n";
@@ -785,7 +794,20 @@ void FunctionCodeEmitter::emitNormalReturn()
 
 void FunctionCodeEmitter::emitBegin()
 {
-  std::cout << "InstReturn retval = InstReturn::CONTINUE;\n";
+  std::cout << "InstReturn retval = InstReturn::CONTINUE;\n"
+            << "bool doFetch = true;\n"
+            << "THREAD.fnop = false;\n"
+            << "uint32_t rpc = THREAD.getRealPc();\n"
+            << "uint32_t wpc = THREAD.getRealPc() & ~0x3;\n"
+            << "if (THREAD.ibuf.size() == 0) {\n"
+            << " THREAD.ibuf.push(wpc);\n"
+            << " THREAD.fnop = true;\n"
+            << " THREAD.time += 4;\n"
+            << "} else if (" << inst->getSize() << " == 4 && wpc != rpc && THREAD.ibuf.size() == 1) {\n"
+            << " THREAD.ibuf.push(wpc + 4);\n"
+            << " THREAD.fnop = true;\n"
+            << " THREAD.time += 4;\n"
+            << "}\n";
 }
 
 void FunctionCodeEmitter::emitRaw(const std::string &s)
@@ -889,7 +911,8 @@ emitStore(const std::string &argString, LoadStoreType type)
   assert(args.size() == 2);
   const std::string &value = args[0];
   const std::string &addr = args[1];
-  std::cout << "{\n";
+  std::cout << "doFetch = false;\n"
+            << "{\n";
 
   std::cout << "  uint32_t StoreAddr = ";
   emitNested(addr);
@@ -925,7 +948,8 @@ emitLoad(const std::string &argString, LoadStoreType type)
   assert(args.size() == 2);
   const std::string &dest = args[0];
   const std::string &addr = args[1];
-  std::cout << "{\n";
+  std::cout << "doFetch = false;\n"
+            << "{\n";
 
   std::cout << "  uint32_t LoadResult;\n";
   std::cout << "  uint32_t LoadAddr = ";
@@ -984,7 +1008,8 @@ void FunctionCodeEmitter::emitWritePcUnchecked(const std::string &args)
 {
   std::cout << "nextPc = ";
   emitNested(args);
-  std::cout << ";\n";
+  std::cout << ";\n"
+            << "std::queue<uint32_t>().swap(THREAD.ibuf);\n";
 }
 
 class CodePropertyExtractor : public CodeEmitter {
@@ -1401,10 +1426,10 @@ static void emitInstTraceInfo()
     if (needComma)
       std::cout << ",\n";
     if (inst->getFormat().empty()) {
-      std::cout << "  { nullptr }";
+      std::cout << "  { nullptr, nullptr, 0 }";
     } else {
       std::cout << "  { " << quote(inst->getFormat()) << ", "
-        << quote(inst->getName()) << " }";
+        << quote(inst->getName()) << ", " << inst->getSize() << " }";
     }
     needComma = true;
   }
@@ -1981,6 +2006,7 @@ void add()
       "  %load_word(%2, Addr)"
       "  %1 = Addr;\n"
       "}\n"
+      "doFetch = false;\n"
       "%write_pc(%2);\n"
       "%yield"
       )
@@ -1989,7 +2015,7 @@ void add()
     .transform("%0 = %0 << 2;", "%0 = %0 >> 2;")
     .setEnableMemCheckOpt()
     // retsp always causes an fnop.
-    .setCycles(2 * INSTRUCTION_CYCLES);
+    /*.setCycles(2 * INSTRUCTION_CYCLES)*/;
   fu6("KRESTSP", "krestsp %0",
       "uint32_t Addr = %1 + %0;\n"
       "%load_word(%1, Addr)"
@@ -2031,7 +2057,7 @@ void add()
     .addImplicitOp(LR, out)
     .addImplicitOp(R11, in)
     // BLAT always causes an fnop.
-    .setCycles(2 * INSTRUCTION_CYCLES);
+    /*.setCycles(2 * INSTRUCTION_CYCLES)*/;
   fu6("KCALL", "kcall %0", "%kcall(%0)");
   fu6("GETSR", "getsr %1, %0", "%1 = %0 & (uint32_t) %2.to_ulong();")
     .addImplicitOp(R11, out)
@@ -2075,7 +2101,7 @@ void add()
     .addImplicitOp(LR, out)
     .addImplicitOp(CP, in)
     // BLACP always causes an fnop.
-    .setCycles(2 * INSTRUCTION_CYCLES);
+    /*.setCycles(2 * INSTRUCTION_CYCLES)*/;
   f2r("NOT", "not %0, %1", "%0 = ~%1;");
   f2r("NEG", "neg %0, %1", "%0 = -%1;");
   frus_inout("SEXT", "sext %0, %1", "%0 = signExtend(%0, %1);");
