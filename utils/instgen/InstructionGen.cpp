@@ -708,7 +708,8 @@ void FunctionCodeEmitter::emitBare(const std::string &s)
 
 void FunctionCodeEmitter::emitCycles()
 {
-  std::cout << "THREAD.time += " << inst->getCycles() << ";\n";
+  std::cout << "THREAD.time += std::max(4,(int)(" << (inst->getCycles()/4)
+            << " * THREAD.getParent().getNumActiveThreads()));\n";
 }
 
 void FunctionCodeEmitter::emitRegWriteBack()
@@ -802,11 +803,13 @@ void FunctionCodeEmitter::emitBegin()
             << "if (THREAD.ibuf.size() == 0) {\n"
             << " THREAD.ibuf.push(wpc);\n"
             << " THREAD.fnop = true;\n"
-            << " THREAD.time += 4;\n"
+            << " THREAD.time += std::max(4,(int)(" << (inst->getCycles()/4)
+            << " * THREAD.getParent().getNumActiveThreads()));\n"
             << "} else if (" << inst->getSize() << " == 4 && wpc != rpc && THREAD.ibuf.size() == 1) {\n"
             << " THREAD.ibuf.push(wpc + 4);\n"
             << " THREAD.fnop = true;\n"
-            << " THREAD.time += 4;\n"
+            << " THREAD.time += std::max(4,(int)(" << (inst->getCycles()/4)
+            << " * THREAD.getParent().getNumActiveThreads()));\n"
             << "}\n";
 }
 
