@@ -89,6 +89,8 @@ public:
   Core(const Core &) = delete;
   ~Core();
 
+  const uint32_t getNumActiveThreads() const;
+
   void setRamBaseMultiple(unsigned multiple);
 
   void clearOpcode(uint32_t pc);

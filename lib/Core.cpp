@@ -137,6 +137,15 @@ bool Core::allocatable[LAST_STD_RES_TYPE + 1] = {
   false, // RES_TYPE_CLKBLK
 };
 
+const uint32_t Core::getNumActiveThreads() const {
+  uint32_t ret = 0;
+  for (size_t i = 0; i < NUM_THREADS; i += 1) {
+    Thread t = getThread(i);
+    ret += (!t.waiting()) && t.isInUse();
+  }
+  return ret;
+}
+
 void Core::setRamBaseMultiple(unsigned multiple)
 {
   // Invalidate cache.

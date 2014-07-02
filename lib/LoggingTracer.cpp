@@ -176,6 +176,7 @@ void LoggingTracer::printInstructionLineStart(const Thread &t, uint32_t pc)
     json["fnoffset"]   = pc - sym->value;
     json["ibuf"]       = Json::UInt(t.ibuf.size());
     json["fnop"]       = t.fnop;
+    json["nActive"]       = t.getParent().getNumActiveThreads();
   } else {
     printLinePrefix(*thread);
     out << ' ';
