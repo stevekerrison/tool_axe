@@ -171,7 +171,7 @@ void LoggingTracer::printInstructionLineStart(const Thread &t, uint32_t pc)
     json["dst"]        = Json::arrayValue;
     json["write"]      = Json::arrayValue;
     json["imm"]        = Json::Value();
-    json["time"]       = Json::UInt64(t.time);
+    json["time"]       = Json::UInt64(t.time-4);
     json["fn"]         = sym->name;
     json["fnoffset"]   = pc - sym->value;
     json["ibuf"]       = Json::UInt(t.ibuf.size());

@@ -113,7 +113,7 @@ Core::Core(uint32_t RamSize, uint32_t RamBase, bool tracing) :
     }
     portNum[width] = num;
   }
-  thread[0].alloc(0);
+  thread[0].alloc(1);
 }
 
 Core::~Core() {
