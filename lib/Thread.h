@@ -107,8 +107,8 @@ public:
   ticks_t time;
   /// Model the instruction buffer
   std::queue<uint32_t> ibuf;
-  /// Track if we need to FNOP
-  bool fnop;
+  /// Track when we need to FNOP
+  uint32_t fnop;
   sr_t sr;
   /// When executing some pseduo instructions placed at the end this holds the
   /// real pc.

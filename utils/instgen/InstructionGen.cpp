@@ -797,17 +797,17 @@ void FunctionCodeEmitter::emitBegin()
 {
   std::cout << "InstReturn retval = InstReturn::CONTINUE;\n"
             << "bool doFetch = true;\n"
-            << "THREAD.fnop = false;\n"
+            << "THREAD.fnop = 0;\n"
             << "uint32_t rpc = THREAD.getRealPc();\n"
             << "uint32_t wpc = THREAD.getRealPc() & ~0x3;\n"
             << "if (THREAD.ibuf.size() == 0) {\n"
             << " THREAD.ibuf.push(wpc);\n"
-            << " THREAD.fnop = true;\n"
+            << " THREAD.fnop = THREAD.time;\n"
             << " THREAD.time += std::max(4,(int)(" << (inst->getCycles()/4)
             << " * THREAD.getParent().getNumActiveThreads()));\n"
             << "} else if (" << inst->getSize() << " == 4 && wpc != rpc && THREAD.ibuf.size() == 1) {\n"
             << " THREAD.ibuf.push(wpc + 4);\n"
-            << " THREAD.fnop = true;\n"
+            << " THREAD.fnop = THREAD.time;\n"
             << " THREAD.time += std::max(4,(int)(" << (inst->getCycles()/4)
             << " * THREAD.getParent().getNumActiveThreads()));\n"
             << "}\n";
