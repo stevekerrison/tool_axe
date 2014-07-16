@@ -301,7 +301,7 @@ void Core::resetCaches()
   }
 }
 
-bool Core::getLocalChanendDest(ResourceID ID, ChanEndpoint *&result)
+bool Core::getLocalChanendDest(ResourceID ID, ChanEndpoint *&result, uint64_t *tokDelay)
 {
   assert(ID.isChanendOrConfig());
   if (ID.isConfig()) {
@@ -329,15 +329,15 @@ bool Core::getLocalChanendDest(ResourceID ID, ChanEndpoint *&result)
   return false;
 }
 
-ChanEndpoint *Core::getChanendDest(ResourceID ID)
+ChanEndpoint *Core::getChanendDest(ResourceID ID, uint64_t *tokDelay)
 {
   if (!ID.isChanendOrConfig())
     return 0;
   ChanEndpoint *result;
   // Try to lookup locally first.
-  if (getLocalChanendDest(ID, result))
+  if (getLocalChanendDest(ID, result, tokDelay))
     return result;
-  return parent->getOutgoingChanendDest(ID);
+  return parent->getOutgoingChanendDest(ID, tokDelay);
 }
 
 bool Core::setProcessorState(uint32_t reg, uint32_t value)

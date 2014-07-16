@@ -31,7 +31,7 @@ public:
   uint32_t getCoreID(unsigned coreNum) const;
   void setNodeID(unsigned value) override;
   static bool getTypeFromJtagID(unsigned jtagID, Type &type);
-  ChanEndpoint *getLocalChanendDest(ResourceID ID) override;
+  ChanEndpoint *getLocalChanendDest(ResourceID ID, uint64_t *tokDelay = 0) override;
 };
 
 } // End axe namespace

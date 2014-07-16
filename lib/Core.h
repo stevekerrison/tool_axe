@@ -285,8 +285,8 @@ public:
   Resource *getResourceByID(ResourceID ID);
   const Resource *getResourceByID(ResourceID ID) const;
 
-  bool getLocalChanendDest(ResourceID ID, ChanEndpoint *&result);
-  ChanEndpoint *getChanendDest(ResourceID ID);
+  bool getLocalChanendDest(ResourceID ID, ChanEndpoint *&result, uint64_t *tokDelay = 0);
+  ChanEndpoint *getChanendDest(ResourceID ID, uint64_t *tokDelay = 0);
 
   unsigned getRunJitAddr() const {
     return (getRamSizeShorts() - 1) + RUN_JIT_ADDR_OFFSET;

@@ -96,7 +96,7 @@ void Node::finalize()
   sswitch.initRegisters();
 }
 
-ChanEndpoint *Node::getIncomingChanendDest(ResourceID ID)
+ChanEndpoint *Node::getIncomingChanendDest(ResourceID ID, uint64_t *tokDelay)
 {
   Node *node = this;
   // Use Brent's algorithm to detect cycles.
@@ -124,16 +124,20 @@ ChanEndpoint *Node::getIncomingChanendDest(ResourceID ID)
       leapCount <<= 1;
       tortoise = node;
     }
+    if (tokDelay) {
+        unsigned bps = xLink->fiveWire ? 2 : 1;
+        *tokDelay += 8/bps * xLink->interSymbolDelay + xLink->interTokenDelay;
+    }
   }
   if (ID.isConfig() && ID.num() == RES_CONFIG_SSCTRL) {
     return &node->sswitch;
   }
-  return node->getLocalChanendDest(ID);
+  return node->getLocalChanendDest(ID, tokDelay);
 }
 
-ChanEndpoint *Node::getOutgoingChanendDest(ResourceID ID)
+ChanEndpoint *Node::getOutgoingChanendDest(ResourceID ID, uint64_t *tokDelay)
 {
-  return getIncomingChanendDest(ID);
+  return getIncomingChanendDest(ID, tokDelay);
 }
 
 bool Node::hasMatchingNodeID(ResourceID ID)

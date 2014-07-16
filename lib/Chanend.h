@@ -33,6 +33,8 @@ private:
   bool inPacket;
   /// Should be current packet be junked?
   bool junkPacket;
+  /// What's the delay to our destination?
+  uint64_t tokDelay;
 
   /// Update the channel end after the data is placed in the buffer.
   void update(ticks_t time);

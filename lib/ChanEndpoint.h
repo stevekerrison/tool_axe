@@ -31,6 +31,9 @@ protected:
   bool openRoute();
   ChanEndpoint();
   ~ChanEndpoint() = default;
+
+  /// Record the route delay per token, assuming tok/sym delays do not change
+  uint64_t delay;
 public:
   /// Give notification that a route to the destination has been opened.
   virtual void notifyDestClaimed(ticks_t time) = 0;

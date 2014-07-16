@@ -88,11 +88,11 @@ public:
   void connectXLink(unsigned num, Node *destNode, unsigned destNum);
   /// Find the destination of a packet with the specified resource ID that was
   /// received on a link from another node.
-  ChanEndpoint *getIncomingChanendDest(ResourceID ID);
+  ChanEndpoint *getIncomingChanendDest(ResourceID ID, uint64_t *tokDelay = 0);
   /// Find the destination of a packet sent to the specified resource ID from
   /// this node.
-  virtual ChanEndpoint *getOutgoingChanendDest(ResourceID ID);
-  virtual ChanEndpoint *getLocalChanendDest(ResourceID ID) = 0;
+  virtual ChanEndpoint *getOutgoingChanendDest(ResourceID ID, uint64_t *tokDelay = 0);
+  virtual ChanEndpoint *getLocalChanendDest(ResourceID ID, uint64_t *tokDelay = 0) = 0;
   uint8_t getDirection(unsigned num) const { return directions[num]; }
   void setDirection(unsigned num, uint8_t value) { directions[num] = value; }
   Type getType() const { return type; }

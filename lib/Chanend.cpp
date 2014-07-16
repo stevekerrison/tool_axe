@@ -74,7 +74,8 @@ bool Chanend::openRoute()
 {
   if (inPacket)
     return true;
-  dest = getOwner().getParent().getChanendDest(destID);
+  tokDelay = 0;
+  dest = getOwner().getParent().getChanendDest(destID, &tokDelay);
   if (!dest) {
     // TODO if dest in unset should give a link error exception.
     junkPacket = true;
@@ -116,7 +117,7 @@ outt(Thread &thread, uint8_t value, ticks_t time)
     pausedOut = &thread;
     return DESCHEDULE;
   }
-  dest->receiveDataToken(time, value);
+  dest->receiveDataToken(time + tokDelay, value);
   return CONTINUE;
 }
 
@@ -140,7 +141,8 @@ out(Thread &thread, uint32_t value, ticks_t time)
     static_cast<uint8_t>(value >> 8),
     static_cast<uint8_t>(value)
   };
-  dest->receiveDataTokens(time, tokens, 4);
+  //TODO: Account for four-token delay here
+  dest->receiveDataTokens(time + tokDelay, tokens, 4);
   return CONTINUE;
 }
 
@@ -162,7 +164,7 @@ outct(Thread &thread, uint8_t value, ticks_t time)
     pausedOut = &thread;
     return DESCHEDULE;
   }  
-  dest->receiveCtrlToken(time, value);
+  dest->receiveCtrlToken(time + tokDelay, value);
   if (value == CT_END || value == CT_PAUSE) {
     inPacket = false;
     dest = 0;
