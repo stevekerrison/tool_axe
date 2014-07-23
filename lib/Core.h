@@ -74,6 +74,7 @@ private:
   const uint8_t *rom;
   uint32_t romBase;
   uint32_t romSize;
+  ticks_t lastTick;
 
   bool hasMatchingNodeID(ResourceID ID);
   void invalidateWordSlowPath(uint32_t address);
@@ -141,6 +142,14 @@ public:
   
   uint32_t toRamPc(uint32_t address) const {
     return getRamDecodeCache().toPc(address);
+  }
+
+  ticks_t getLastTick() const {
+    return lastTick;
+  }
+
+  void setLastTick(ticks_t tick) {
+    lastTick = tick;
   }
 
 private:

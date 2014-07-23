@@ -33,7 +33,7 @@ sync(Thread &thread, bool isMaster)
   NumPaused = 0;
   if (!join) {
     for (unsigned i = 0; i < NumThreads; i++) {
-      threads[i]->time = newTime;
+      threads[i]->time = newTime + i;
       if (threads[i] != &thread) {
         if (i > 0)
           threads[i]->setSSync(false);

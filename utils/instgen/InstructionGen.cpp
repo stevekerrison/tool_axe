@@ -708,7 +708,8 @@ void FunctionCodeEmitter::emitBare(const std::string &s)
 
 void FunctionCodeEmitter::emitCycles()
 {
-  std::cout << "THREAD.time += std::max(4,(int)(" << (inst->getCycles()/4)
+  std::cout << "//THREAD.getParent().setLastTick(THREAD.time);\n"
+            << "THREAD.time += std::max(4,(int)(" << (inst->getCycles()/4)
             << " * THREAD.getParent().getNumActiveThreads()));\n";
 }
 
@@ -796,6 +797,10 @@ void FunctionCodeEmitter::emitNormalReturn()
 void FunctionCodeEmitter::emitBegin()
 {
   std::cout << "InstReturn retval = InstReturn::CONTINUE;\n"
+            << "if (THREAD.time <= THREAD.getParent().getLastTick()) {\n"
+            << " THREAD.time += 1;\n"
+            << "}\n"
+            << "THREAD.getParent().setLastTick(THREAD.time);\n"
             << "bool doFetch = true;\n"
             << "THREAD.fnop = 0;\n"
             << "uint32_t rpc = THREAD.getRealPc();\n"

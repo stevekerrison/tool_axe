@@ -41,7 +41,8 @@ Core::Core(uint32_t RamSize, uint32_t RamBase, bool tracing) :
   bootStatus(0),
   rom(0),
   romBase(0),
-  romSize(0)
+  romSize(0),
+  lastTick(0)
 {
   memoryOffset = memory - RamBase;
   invalidationInfoOffset =
@@ -141,7 +142,7 @@ const uint32_t Core::getNumActiveThreads() const {
   uint32_t ret = 0;
   for (size_t i = 0; i < NUM_THREADS; i += 1) {
     Thread t = getThread(i);
-    ret += (!t.waiting()) && t.isInUse();
+    ret += (!t.waiting()) && t.isInUse() && (!t.getSync() || !t.inSSync());
   }
   return ret;
 }
