@@ -313,6 +313,9 @@ bool Core::getLocalChanendDest(ResourceID ID, ChanEndpoint *&result, uint64_t *t
       // TODO.
       assert(0);
       result = 0;
+      if (tokDelay) {
+          *tokDelay += std::max(4,(int)getNumActiveThreads());
+      }
       return true;
     }
   } else {
@@ -323,6 +326,9 @@ bool Core::getLocalChanendDest(ResourceID ID, ChanEndpoint *&result, uint64_t *t
         result = static_cast<Chanend*>(res);
       } else {
         result = 0;
+      }
+      if (tokDelay) {
+          *tokDelay += std::max(4,(int)getNumActiveThreads());
       }
       return true;
     }
@@ -338,6 +344,9 @@ ChanEndpoint *Core::getChanendDest(ResourceID ID, uint64_t *tokDelay)
   // Try to lookup locally first.
   if (getLocalChanendDest(ID, result, tokDelay))
     return result;
+  if (tokDelay) {
+    *tokDelay += std::max(4,(int)getNumActiveThreads());
+  }
   return parent->getOutgoingChanendDest(ID, tokDelay);
 }
 

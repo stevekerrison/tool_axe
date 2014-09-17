@@ -3,6 +3,7 @@
 // University of Illinois/NCSA Open Source License posted in
 // LICENSE.txt and at <http://github.xcore.com/>
 
+
 #include "Node.h"
 #include "BitManip.h"
 
@@ -126,7 +127,7 @@ ChanEndpoint *Node::getIncomingChanendDest(ResourceID ID, uint64_t *tokDelay)
     }
     if (tokDelay) {
         unsigned bps = xLink->fiveWire ? 2 : 1;
-        *tokDelay += 8/bps * xLink->interSymbolDelay + xLink->interTokenDelay;
+        *tokDelay += 8/bps * (xLink->interSymbolDelay + 1) + xLink->interTokenDelay + 1;
     }
   }
   if (ID.isConfig() && ID.num() == RES_CONFIG_SSCTRL) {

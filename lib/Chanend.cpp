@@ -263,7 +263,7 @@ Resource::ResOpResult Chanend::
 in(Thread &thread, ticks_t time, uint32_t &value)
 {
   unsigned Position;
-  if (!testwct(thread, time, Position))
+  if ((!testwct(thread, time, Position)) )// || (pausedIn && thread.time < pausedIn->time) )
     return DESCHEDULE;
   if (Position != 0)
     return ILLEGAL;
@@ -280,6 +280,14 @@ void Chanend::update(ticks_t time)
   assert(!buf.empty());
   if (eventsPermitted()) {
     event(time);
+    return;
+  }
+  /* If the token has arrived in the future... um, schedule! */
+  if (getOwner().time < time) {
+    setPausedIn(getOwner(), true);
+    pausedIn->time = time;
+    pausedIn->schedule();
+    pausedIn = 0;
     return;
   }
   if (!pausedIn)
