@@ -34,8 +34,9 @@ private:
   /// Should be current packet be junked?
   bool junkPacket;
   /// What's the delay to our destination?
-  uint64_t tokDelay;
-
+  
+  tokRate tokDelay;
+  
   /// Update the channel end after the data is placed in the buffer.
   void update(ticks_t time);
 
@@ -77,6 +78,8 @@ private:
   uint8_t poptoken(ticks_t time);
 
   void setPausedIn(Thread &t, bool wordInput);
+  
+  void routeDelay(uint8_t n_tokens);
 
 public:
   Chanend() : EventableResource(RES_TYPE_CHANEND) {}

@@ -97,7 +97,7 @@ void Node::finalize()
   sswitch.initRegisters();
 }
 
-ChanEndpoint *Node::getIncomingChanendDest(ResourceID ID, uint64_t *tokDelay)
+ChanEndpoint *Node::getIncomingChanendDest(ResourceID ID, tokRate *tokDelay)
 {
   Node *node = this;
   // Use Brent's algorithm to detect cycles.
@@ -127,7 +127,11 @@ ChanEndpoint *Node::getIncomingChanendDest(ResourceID ID, uint64_t *tokDelay)
     }
     if (tokDelay) {
         unsigned bps = xLink->fiveWire ? 2 : 1;
-        *tokDelay += 8/bps * (xLink->interSymbolDelay + 1) + xLink->interTokenDelay + 1;
+        uint64_t trate = (8/bps - 1) * (xLink->interSymbolDelay + 1) + xLink->interTokenDelay + 1;
+        // Time is 3Ts + Tt for wire, plus any switch/channel delays
+        tokDelay->delay += trate;
+        // Update token rate
+        tokDelay->trate = std::max(tokDelay->trate, trate);
     }
   }
   if (ID.isConfig() && ID.num() == RES_CONFIG_SSCTRL) {
@@ -136,7 +140,7 @@ ChanEndpoint *Node::getIncomingChanendDest(ResourceID ID, uint64_t *tokDelay)
   return node->getLocalChanendDest(ID, tokDelay);
 }
 
-ChanEndpoint *Node::getOutgoingChanendDest(ResourceID ID, uint64_t *tokDelay)
+ChanEndpoint *Node::getOutgoingChanendDest(ResourceID ID, tokRate *tokDelay)
 {
   return getIncomingChanendDest(ID, tokDelay);
 }

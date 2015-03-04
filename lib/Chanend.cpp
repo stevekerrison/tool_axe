@@ -74,7 +74,7 @@ bool Chanend::openRoute()
 {
   if (inPacket)
     return true;
-  tokDelay = 0;
+  tokDelay = {};
   dest = getOwner().getParent().getChanendDest(destID, &tokDelay);
   if (!dest) {
     // TODO if dest in unset should give a link error exception.
@@ -104,6 +104,30 @@ bool Chanend::getData(Thread &thread, uint32_t &result, ticks_t time)
   return true;
 }
 
+/*
+ * Update the remote receive time based on a simplistic model of
+ * cut-through routing.
+ */
+void Chanend::routeDelay(uint8_t n_tokens) {
+  tokDelay.rrec = std::max((uint64_t)time, tokDelay.rrec);
+  uint64_t oldrrec = tokDelay.rrec;
+  switch (tokDelay.header_sent) {
+  case RES_CH_SENT_NO:
+    //Add on a header!
+    tokDelay.rrec += 3 * tokDelay.trate;
+    /* Fallthrough */
+  case RES_CH_SENT_LOCAL:
+    tokDelay.rrec += tokDelay.delay + n_tokens * tokDelay.trate;
+    tokDelay.header_sent = RES_CH_SENT_YES;
+    break;    
+  case RES_CH_SENT_YES:
+  default: //WAT
+    tokDelay.rrec += n_tokens * tokDelay.trate;
+    break;
+  }
+  return;
+}
+
 Resource::ResOpResult Chanend::
 outt(Thread &thread, uint8_t value, ticks_t time)
 {
@@ -117,7 +141,8 @@ outt(Thread &thread, uint8_t value, ticks_t time)
     pausedOut = &thread;
     return DESCHEDULE;
   }
-  dest->receiveDataToken(time + tokDelay, value);
+  routeDelay(1);
+  dest->receiveDataToken(tokDelay.rrec, value);
   return CONTINUE;
 }
 
@@ -141,8 +166,8 @@ out(Thread &thread, uint32_t value, ticks_t time)
     static_cast<uint8_t>(value >> 8),
     static_cast<uint8_t>(value)
   };
-  //TODO: Account for four-token delay here
-  dest->receiveDataTokens(time + tokDelay, tokens, 4);
+  routeDelay(4);
+  dest->receiveDataTokens(tokDelay.rrec, tokens, 4);
   return CONTINUE;
 }
 
@@ -163,8 +188,9 @@ outct(Thread &thread, uint8_t value, ticks_t time)
   if (!dest->canAcceptToken()) {
     pausedOut = &thread;
     return DESCHEDULE;
-  }  
-  dest->receiveCtrlToken(time + tokDelay, value);
+  }
+  routeDelay(1);
+  dest->receiveCtrlToken(tokDelay.rrec, value);
   if (value == CT_END || value == CT_PAUSE) {
     inPacket = false;
     dest = 0;

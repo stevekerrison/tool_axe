@@ -14,8 +14,8 @@ class PeripheralNode : public Node {
 public:
   PeripheralNode();
   void finalize() override;
-  ChanEndpoint *getOutgoingChanendDest(ResourceID ID, uint64_t *tokDelay = 0) override;
-  ChanEndpoint *getLocalChanendDest(ResourceID ID, uint64_t *tokDelay = 0) override;
+  ChanEndpoint *getOutgoingChanendDest(ResourceID ID, tokRate *tokDelay = 0) override;
+  ChanEndpoint *getLocalChanendDest(ResourceID ID, tokRate *tokDelay = 0) override;
 };
 
 }  // End axe namespace

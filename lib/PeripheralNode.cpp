@@ -23,7 +23,7 @@ void PeripheralNode::finalize()
   xlink.setEnabled(true);
 }
 
-ChanEndpoint *PeripheralNode::getOutgoingChanendDest(ResourceID ID, uint64_t *tokDelay)
+ChanEndpoint *PeripheralNode::getOutgoingChanendDest(ResourceID ID, tokRate *tokDelay)
 {
   // All outgoing messages are routed over the link, regardless of the ID.
   XLink &xlink = getXLink(0);
@@ -32,7 +32,7 @@ ChanEndpoint *PeripheralNode::getOutgoingChanendDest(ResourceID ID, uint64_t *to
   return xlink.getDestNode()->getOutgoingChanendDest(ID, tokDelay);
 }
 
-ChanEndpoint *PeripheralNode::getLocalChanendDest(ResourceID ID, uint64_t *tokDelay)
+ChanEndpoint *PeripheralNode::getLocalChanendDest(ResourceID ID, tokRate *tokDelay)
 {
   return nullptr;
 }

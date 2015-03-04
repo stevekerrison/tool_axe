@@ -302,7 +302,7 @@ void Core::resetCaches()
   }
 }
 
-bool Core::getLocalChanendDest(ResourceID ID, ChanEndpoint *&result, uint64_t *tokDelay)
+bool Core::getLocalChanendDest(ResourceID ID, ChanEndpoint *&result, tokRate *tokDelay)
 {
   assert(ID.isChanendOrConfig());
   if (ID.isConfig()) {
@@ -314,7 +314,9 @@ bool Core::getLocalChanendDest(ResourceID ID, ChanEndpoint *&result, uint64_t *t
       assert(0);
       result = 0;
       if (tokDelay) {
-          *tokDelay += std::max(4,(int)getNumActiveThreads());
+          tokDelay->delay += std::max(4,(int)getNumActiveThreads());
+          //1 token per System clock
+          tokDelay->trate = std::max(tokDelay->trate, 1UL);
       }
       return true;
     }
@@ -328,7 +330,9 @@ bool Core::getLocalChanendDest(ResourceID ID, ChanEndpoint *&result, uint64_t *t
         result = 0;
       }
       if (tokDelay) {
-          *tokDelay += std::max(4,(int)getNumActiveThreads());
+          tokDelay->delay += std::max(4,(int)getNumActiveThreads());
+          //1 token per System clock
+          tokDelay->trate = std::max(tokDelay->trate, 1UL);
       }
       return true;
     }
@@ -336,16 +340,22 @@ bool Core::getLocalChanendDest(ResourceID ID, ChanEndpoint *&result, uint64_t *t
   return false;
 }
 
-ChanEndpoint *Core::getChanendDest(ResourceID ID, uint64_t *tokDelay)
+ChanEndpoint *Core::getChanendDest(ResourceID ID, tokRate *tokDelay)
 {
   if (!ID.isChanendOrConfig())
     return 0;
   ChanEndpoint *result;
   // Try to lookup locally first.
-  if (getLocalChanendDest(ID, result, tokDelay))
+  if (getLocalChanendDest(ID, result, tokDelay)) {
+    if (tokDelay) {
+        tokDelay->header_sent = RES_CH_SENT_LOCAL; //No header for local traffic :)
+    }
     return result;
+  }
   if (tokDelay) {
-    *tokDelay += std::max(4,(int)getNumActiveThreads());
+    tokDelay->delay += std::max(4,(int)getNumActiveThreads());
+    //1 token per System clock
+    tokDelay->trate = std::max(tokDelay->trate, 1UL);
   }
   return parent->getOutgoingChanendDest(ID, tokDelay);
 }

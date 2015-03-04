@@ -88,7 +88,7 @@ bool ProcessorNode::getTypeFromJtagID(unsigned jtagID, Type &type)
   }
 }
 
-ChanEndpoint *ProcessorNode::getLocalChanendDest(ResourceID ID, uint64_t *tokDelay)
+ChanEndpoint *ProcessorNode::getLocalChanendDest(ResourceID ID, tokRate *tokDelay)
 {
   assert(hasMatchingNodeID(ID));
   unsigned destCore = ID.node() & makeMask(getNonNodeNumberBits());

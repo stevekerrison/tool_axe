@@ -30,7 +30,21 @@ enum ResConfigType {
   RES_CONFIG_SSCTRL = 0xc3,
 };
 
+enum ChanHeaderSent {
+    RES_CH_SENT_NO = 0,
+    RES_CH_SENT_YES,
+    RES_CH_SENT_LOCAL
+};
+
 const int LAST_STD_RES_TYPE = RES_TYPE_CLKBLK;
+
+typedef struct {
+    uint64_t delay;     // Total end-to-end delay
+    uint64_t trate;     // Sustainable token rate
+    uint64_t rrec;      // When did the remote last receive a token.
+    // Has the header delay been accounted for?
+    enum ChanHeaderSent header_sent;
+} tokRate;
 
 class ResourceID {
 private:
