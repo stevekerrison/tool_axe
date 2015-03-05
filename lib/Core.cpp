@@ -333,6 +333,7 @@ bool Core::getLocalChanendDest(ResourceID ID, ChanEndpoint *&result, tokRate *to
           tokDelay->delay += std::max(4,(int)getNumActiveThreads());
           //1 token per System clock
           tokDelay->trate = std::max(tokDelay->trate, 1UL);
+          tokDelay->rrec = static_cast<EventableResource*>(res)->getOwner().time;
       }
       return true;
     }

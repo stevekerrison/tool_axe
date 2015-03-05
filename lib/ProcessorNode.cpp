@@ -95,6 +95,6 @@ ChanEndpoint *ProcessorNode::getLocalChanendDest(ResourceID ID, tokRate *tokDela
   if (destCore >= cores.size())
     return 0;
   ChanEndpoint *dest = 0;
-  cores[destCore]->getLocalChanendDest(ID, dest);
+  cores[destCore]->getLocalChanendDest(ID, dest, tokDelay);
   return dest;
 }

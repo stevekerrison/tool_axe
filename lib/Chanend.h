@@ -79,7 +79,7 @@ private:
 
   void setPausedIn(Thread &t, bool wordInput);
   
-  void routeDelay(uint8_t n_tokens);
+  void routeDelay(uint64_t time, uint8_t n_tokens);
 
 public:
   Chanend() : EventableResource(RES_TYPE_CHANEND) {}

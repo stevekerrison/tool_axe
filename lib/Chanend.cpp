@@ -108,9 +108,8 @@ bool Chanend::getData(Thread &thread, uint32_t &result, ticks_t time)
  * Update the remote receive time based on a simplistic model of
  * cut-through routing.
  */
-void Chanend::routeDelay(uint8_t n_tokens) {
-  tokDelay.rrec = std::max((uint64_t)time, tokDelay.rrec);
-  uint64_t oldrrec = tokDelay.rrec;
+void Chanend::routeDelay(uint64_t time, uint8_t n_tokens) {
+  tokDelay.rrec = std::max(time, tokDelay.rrec);
   switch (tokDelay.header_sent) {
   case RES_CH_SENT_NO:
     //Add on a header!
@@ -141,7 +140,7 @@ outt(Thread &thread, uint8_t value, ticks_t time)
     pausedOut = &thread;
     return DESCHEDULE;
   }
-  routeDelay(1);
+  routeDelay((uint64_t) time, 1);
   dest->receiveDataToken(tokDelay.rrec, value);
   return CONTINUE;
 }
@@ -166,7 +165,7 @@ out(Thread &thread, uint32_t value, ticks_t time)
     static_cast<uint8_t>(value >> 8),
     static_cast<uint8_t>(value)
   };
-  routeDelay(4);
+  routeDelay((uint64_t) time, 4);
   dest->receiveDataTokens(tokDelay.rrec, tokens, 4);
   return CONTINUE;
 }
@@ -189,7 +188,7 @@ outct(Thread &thread, uint8_t value, ticks_t time)
     pausedOut = &thread;
     return DESCHEDULE;
   }
-  routeDelay(1);
+  routeDelay((uint64_t) time, 1);
   dest->receiveCtrlToken(tokDelay.rrec, value);
   if (value == CT_END || value == CT_PAUSE) {
     inPacket = false;
