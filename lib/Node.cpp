@@ -126,10 +126,12 @@ ChanEndpoint *Node::getIncomingChanendDest(ResourceID ID, tokRate *tokDelay)
       tortoise = node;
     }
     if (tokDelay) {
+        // Time is 3Ts + Tt for wire, plus any switch/channel delays
         unsigned bps = xLink->fiveWire ? 2 : 1;
         uint64_t trate = (8/bps - 1) * (xLink->interSymbolDelay + 1) + xLink->interTokenDelay + 1;
-        // Time is 3Ts + Tt for wire, plus any switch/channel delays
-        tokDelay->delay += trate;
+        tokDelay->hops += 1;
+        /* // Include N clocks for the switch procesing delay... fudge factor!!!
+        tokDelay->delay += trate + 8; */
         // Update token rate
         tokDelay->trate = std::max(tokDelay->trate, trate);
     }

@@ -42,6 +42,7 @@ typedef struct {
     uint64_t delay;     // Total end-to-end delay
     uint64_t trate;     // Sustainable token rate
     uint64_t rrec;      // When did the remote last receive a token.
+    uint16_t hops;      // How many switches are traversed.
     // Has the header delay been accounted for?
     enum ChanHeaderSent header_sent;
 } tokRate;
