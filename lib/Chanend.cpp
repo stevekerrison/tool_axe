@@ -109,20 +109,31 @@ bool Chanend::getData(Thread &thread, uint32_t &result, ticks_t time)
  * cut-through routing.
  */
 void Chanend::routeDelay(uint64_t time, uint8_t n_tokens) {
-  tokDelay.rrec = std::max(time, tokDelay.rrec);
+  uint64_t rtime = time + tokDelay.delay + ((n_tokens - 1) * (tokDelay.trate));
+  if (rtime <= tokDelay.rrec) {
+    tokDelay.rrec = tokDelay.rrec + (n_tokens * tokDelay.trate);
+  } else {
+    tokDelay.rrec = rtime;
+  }
   switch (tokDelay.header_sent) {
   case RES_CH_SENT_NO:
     //Add on a header!
-    tokDelay.rrec += (3 * tokDelay.trate) +
-        (8 * tokDelay.hops) + (n_tokens * tokDelay.trate);
+    /*tokDelay.rrec += (3 * tokDelay.trate) +
+        (8 * tokDelay.hops) + (n_tokens * tokDelay.trate);*/
+    /*tokDelay.rrec += tokDelay.delay +
+        (3 * tokDelay.trate) + ((n_tokens-1) * tokDelay.trate);*/
+    tokDelay.rrec += 3 * tokDelay.trate;
+    tokDelay.rrec += (tokDelay.hops > 2 ? 16 : 8) * tokDelay.hops;
     /* Fallthrough */
   case RES_CH_SENT_LOCAL:
-    tokDelay.rrec += tokDelay.delay;
+    //tokDelay.rrec += tokDelay.delay;
     tokDelay.header_sent = RES_CH_SENT_YES;
     break;    
   case RES_CH_SENT_YES:
   default: //WAT
-    tokDelay.rrec += (n_tokens * tokDelay.trate) + (8 * tokDelay.hops);
+    //tokDelay.rrec += (n_tokens * tokDelay.trate) + (8 * tokDelay.hops);
+    //tokDelay.rrec += tokDelay.delay + ((n_tokens-1) * tokDelay.trate);
+    //tokDelay.rrec += (n_tokens) * tokDelay.trate;
     break;
   }
   return;

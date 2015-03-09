@@ -130,14 +130,18 @@ ChanEndpoint *Node::getIncomingChanendDest(ResourceID ID, tokRate *tokDelay)
         unsigned bps = xLink->fiveWire ? 2 : 1;
         uint64_t trate = (8/bps - 1) * (xLink->interSymbolDelay + 1) + xLink->interTokenDelay + 1;
         tokDelay->hops += 1;
-        /* // Include N clocks for the switch procesing delay... fudge factor!!!
-        tokDelay->delay += trate + 8; */
+        // Include N clocks for the switch procesing delay... fudge factor!!!
+        tokDelay->delay += trate;
+        tokDelay->hdelay += 3;
         // Update token rate
         tokDelay->trate = std::max(tokDelay->trate, trate);
     }
   }
   if (ID.isConfig() && ID.num() == RES_CONFIG_SSCTRL) {
     return &node->sswitch;
+  }
+  if (tokDelay) {
+    tokDelay->hops += 1;
   }
   return node->getLocalChanendDest(ID, tokDelay);
 }
