@@ -8,7 +8,11 @@
 #include "llvm-c/Target.h"
 #include "llvm/ExecutionEngine/ExecutionEngine.h"
 #include "llvm/ExecutionEngine/JITEventListener.h"
-#include "llvm/Support/CallSite.h"
+#if ((LLVM_MAJOR_VERSION > 3) || (LLVM_VERSION_MINOR >= 5))
+    #include "llvm/IR/CallSite.h"
+#else
+    #include "llvm/Support/CallSite.h"
+#endif
 #include "llvm/Support/MemoryBuffer.h"
 #include "llvm/Transforms/Utils/Cloning.h"
 #include "llvm/Transforms/Scalar.h"

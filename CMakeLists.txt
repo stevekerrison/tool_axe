@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 2.8.12)
 project(AXE)
 include(Version.txt)
 
+cmake_policy(SET CMP0026 OLD)
+
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 if(CMAKE_COMPILER_IS_GNUCXX )
@@ -73,7 +75,7 @@ endif()
 add_subdirectory(utils/instgen)
 add_subdirectory(utils/not)
 add_subdirectory(utils/genHex)
-add_subdirectory(utils/genJitGlobalMap)
+#add_subdirectory(utils/genJitGlobalMap)
 add_subdirectory(lib)
 add_subdirectory(tools/axe)
 

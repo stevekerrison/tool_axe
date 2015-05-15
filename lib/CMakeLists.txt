@@ -241,17 +241,20 @@ add_custom_command(
 
 if (COMPILER_IS_GCC_COMPATIBLE)
   set_source_files_properties(LLVMExtra.cpp PROPERTIES
-                              COMPILE_FLAGS "-fno-rtti -std=c++98")
+                              COMPILE_FLAGS "-fno-rtti")
 endif()
 
 target_link_libraries(
   axe PUBLIC
+  pthread
   ${LIBELF_LIBRARIES}
   ${LIBXML2_LIBRARIES}
   ${LIBXSLT_LIBRARIES}
   ${LLVM_LIBRARIES}
   ${LLVM_LDFLAGS}
+  tinfo
   jsoncpp
+  dl
   )
 
 target_include_directories(
