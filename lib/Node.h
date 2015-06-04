@@ -9,8 +9,11 @@
 #include <stdint.h>
 #include <vector>
 #include <memory>
+#include <queue>
+
 #include "SSwitch.h"
 #include "Resource.h"
+#include "Token.h"
 
 namespace axe {
 
@@ -29,6 +32,8 @@ class XLink {
   uint8_t direction;
   uint16_t interTokenDelay;
   uint16_t interSymbolDelay;
+  std::queue<Token> inputQueue;
+  uint8_t outputCredit;
 public:
   XLink();
   Node *getDestNode() { return destNode; }

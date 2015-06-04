@@ -17,7 +17,8 @@ XLink::XLink() :
   direction(0),
   // TODO find out defaults.
   interTokenDelay(0),
-  interSymbolDelay(0)
+  interSymbolDelay(0),
+  outputCredit(0)
 {
   
 }
