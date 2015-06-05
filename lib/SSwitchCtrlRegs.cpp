@@ -3,8 +3,8 @@
 // University of Illinois/NCSA Open Source License posted in
 // LICENSE.txt and at <http://github.xcore.com/>
 
-#include "SSwitchCtrlRegs.h"
 #include "ProcessorNode.h"
+#include "SSwitchCtrlRegs.h"
 #include "BitManip.h"
 #include <algorithm>
 #undef NDEBUG
@@ -113,15 +113,15 @@ static uint32_t readXLinkStateReg(const Node *node, const XLink &xLink)
   }
   bool isConnected = xLink.isConnected();
   if (node->getType() != Node::XS1_G) {
-    setBit(value, isConnected, 25);
-    setBit(value, isConnected, 26);
+    setBit(value, xLink.hasCredit(), 25);
+    setBit(value, xLink.hasIssuedCredit(), 26);
   }
   setBit(value, xLink.isFiveWire(), 30);
   setBit(value, xLink.isEnabled(), 31);
   return value;
 }
 
-static void writeXLinkStateReg(const Node *node, XLink &xLink, uint32_t value)
+static void writeXLinkStateReg(ticks_t time, const Node *node, XLink &xLink, uint32_t value)
 {
   if (node->getType() == Node::XS1_G) {
     xLink.setInterTokenDelay(getBitRange(value, 3, 0));
@@ -131,9 +131,10 @@ static void writeXLinkStateReg(const Node *node, XLink &xLink, uint32_t value)
     xLink.setInterSymbolDelay(getBitRange(value, 21, 11));
   }
   // Ignore RESET
-  xLink.hello(getBit(value, 24));
+  xLink.hello(time, getBit(value, 24));
   xLink.setFiveWire(getBit(value, 30));
   xLink.setEnabled(getBit(value, 31));
+  xLink.setTokDelay();
 }
 
 static unsigned getDirectionBits(const Node *node)
@@ -211,7 +212,7 @@ bool SSwitchCtrlRegs::read(uint16_t num, uint32_t &result)
   return false;
 }
 
-bool SSwitchCtrlRegs::write(uint16_t num, uint32_t value)
+bool SSwitchCtrlRegs::write(ticks_t time, uint16_t num, uint32_t value)
 {
   using namespace SSwitchReg;
   if (num > regFlags.size())
@@ -224,7 +225,7 @@ bool SSwitchCtrlRegs::write(uint16_t num, uint32_t value)
     return true;
   }
   if (num >= XLINK_0 && num < XSTATIC_0) {
-    writeXLinkStateReg(node, node->getXLink(num - XLINK_0), value);
+    writeXLinkStateReg(time, node, node->getXLink(num - XLINK_0), value);
     return true;
   }
   switch (num) {

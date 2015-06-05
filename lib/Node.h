@@ -25,28 +25,39 @@ class ProcessorNode;
 
 class XLink : public ChanEndpoint {
   friend class Node;
+  friend class SSwitch;
   Node *destNode;
+  Node *parent;
   unsigned destXLinkNum;
   bool enabled;
   bool fiveWire;
+  bool waiting;
   uint8_t network;
   uint8_t direction;
   uint16_t interTokenDelay;
   uint16_t interSymbolDelay;
   uint8_t outputCredit;
+  bool issuedCredit;
+  ticks_t wakeTime;
+  ticks_t tokDelay;
   /// Input buffer.
   typedef ring_buffer<Token, XLINK_BUFFER_SIZE> XLinkBuffer;
   XLinkBuffer buf;
+protected:
+  bool openRoute();
 public:
   XLink();
   Node *getDestNode() { return destNode; }
   XLink *getDestXLink() const;
   void setEnabled(bool value) { enabled = value; }
   bool isEnabled() const { return enabled; }
-  void hello(bool value);
+  void hello(ticks_t time, bool value);
   void setFiveWire(bool value) { fiveWire = value; }
   bool isFiveWire() const { return fiveWire; }
   void setNetwork(uint8_t value) { network = value; }
+  void setTokDelay();
+  bool hasIssuedCredit() const { return issuedCredit; }
+  bool hasCredit() const { return outputCredit >= 8; }
   uint8_t getNetwork() const { return network; }
   void setDirection(uint8_t value) { direction = value; }
   uint8_t getDirection() const { return direction; }
@@ -55,6 +66,7 @@ public:
   void setInterSymbolDelay(uint16_t value) { interSymbolDelay = value; }
   uint16_t getInterSymbolDelay() const { return interSymbolDelay; }
   bool isConnected() const;
+  void run(ticks_t time);
   /* ChanEndpoint overrides */
   void notifyDestCanAcceptTokens(ticks_t time, unsigned tokens) override;
   bool canAcceptToken() override;

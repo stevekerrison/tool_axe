@@ -42,6 +42,7 @@ private:
   unsigned responseLength;
   bool parseRequest(ticks_t time, Request &request) const;
   void handleRequest(ticks_t time, const Request &request);
+  void handleTokens(ticks_t time);
 public:
   SSwitch(Node *parent);
   void initRegisters() { regs.initRegisters(); }

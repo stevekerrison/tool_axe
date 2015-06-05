@@ -8,6 +8,7 @@
 #include "ProcessorNode.h"
 #include "SystemState.h"
 #include "Tracer.h"
+#undef NDEBUG
 #include <cassert>
 
 using namespace axe;
@@ -96,7 +97,7 @@ void SSwitch::handleRequest(ticks_t time, const Request &request)
                                             request.returnNode);
   Tracer *tracer = parent->getParent()->getTracer();
   if (request.write) {
-    ack = regs.write(request.regNum, request.data);
+    ack = regs.write(time, request.regNum, request.data);
     if (tracer) {
       tracer->SSwitchWrite(*parent, destID, request.regNum, request.data);
       if (ack)
@@ -223,7 +224,16 @@ void SSwitch::receiveCtrlToken(ticks_t time, uint8_t value)
   buf[recievedTokens++] = Token(value, true);
 }
 
+void SSwitch::handleTokens(ticks_t time)
+{
+    size_t lim = parent->getNumXLinks();
+    for (int i = 0; i < lim; i += 1) {
+        parent->getXLink(i).run(time);
+    }
+}
+
 void SSwitch::run(ticks_t time)
 {
+    handleTokens(time);
     scheduler->push(*this, time + 1);
 }
