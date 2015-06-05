@@ -5,7 +5,11 @@
 
 #include "Chanend.h"
 #include "Core.h"
+#include "Node.h"
 #include <algorithm>
+
+#undef NDEBUG
+#include <cassert>
 
 using namespace axe;
 

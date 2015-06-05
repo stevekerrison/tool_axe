@@ -23,10 +23,9 @@ XLink::XLink() :
   interSymbolDelay(0),
   outputCredit(0)
 {
-  
 }
 
-const XLink *XLink::getDestXLink() const
+XLink *XLink::getDestXLink() const
 {
   if (!destNode)
     return 0;
@@ -43,9 +42,11 @@ bool XLink::isConnected() const
   return isFiveWire() == otherEnd->isFiveWire();
 }
 
-bool XLink::claim(ChanEndpoint *newSource, bool &junkPacket) {
-  // TODO
-  assert(0);
+void XLink::hello(bool value) {
+  if (value) {
+    outputCredit = 0;
+    getDestXLink()->receiveCtrlToken(0, CT_HELLO);
+  }
 }
 
 void XLink::notifyDestClaimed(ticks_t time)
@@ -62,8 +63,7 @@ void XLink::notifyDestCanAcceptTokens(ticks_t time, unsigned tokens)
 
 bool XLink::canAcceptToken()
 {
-  // TODO
-  assert(0);
+  return outputCredit >= 8;
 }
 
 bool XLink::canAcceptTokens(unsigned tokens)
@@ -86,8 +86,37 @@ void XLink::receiveDataTokens(ticks_t time, uint8_t *values, unsigned num)
 
 void XLink::receiveCtrlToken(ticks_t time, uint8_t value)
 {
-  // TODO
-  assert(0);
+  switch (value) {
+    case CT_HELLO:
+      {
+        uint8_t credit = 0, bufrem = buf.remaining() * 8;
+        if (bufrem >= 64) {
+          credit = CT_CREDIT64;
+        } else if (bufrem >= 16) {
+          credit = CT_CREDIT16;
+        } else if (bufrem >= 8) {
+          credit = CT_CREDIT8;
+        } else {
+          //Oops, no credit for you!
+        }
+        if (credit) {
+          getDestXLink()->receiveCtrlToken(0, credit);
+        }
+      }
+      break;
+    case CT_CREDIT64:
+      outputCredit += 64;
+      break;
+    case CT_CREDIT16:
+      outputCredit += 16;
+      break;
+    case CT_CREDIT8:
+      outputCredit += 8;
+      break;
+    default:
+      // TODO
+      assert(0 && "Forward tokens & handle END/PAUSE");
+  }
 }
 
 Node::Node(Type t, unsigned numXLinks) :
@@ -215,6 +244,7 @@ ChanEndpoint *Node::getNextEndpoint(ResourceID ID)
   XLink *xLink = node->getXLinkForDirection(direction);
   if (!xLink || !xLink->isConnected())
     return 0;
+  xLink->setJunkIncoming(false);
   return xLink;
 }
 

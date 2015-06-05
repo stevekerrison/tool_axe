@@ -16,6 +16,7 @@
 #include "Token.h"
 #include "SystemState.h"
 #include "ChanEndpoint.h"
+#include "ring_buffer.h"
 
 namespace axe {
 
@@ -32,14 +33,17 @@ class XLink : public ChanEndpoint {
   uint8_t direction;
   uint16_t interTokenDelay;
   uint16_t interSymbolDelay;
-  std::queue<Token> inputQueue;
   uint8_t outputCredit;
+  /// Input buffer.
+  typedef ring_buffer<Token, XLINK_BUFFER_SIZE> XLinkBuffer;
+  XLinkBuffer buf;
 public:
   XLink();
   Node *getDestNode() { return destNode; }
-  const XLink *getDestXLink() const;
+  XLink *getDestXLink() const;
   void setEnabled(bool value) { enabled = value; }
   bool isEnabled() const { return enabled; }
+  void hello(bool value);
   void setFiveWire(bool value) { fiveWire = value; }
   bool isFiveWire() const { return fiveWire; }
   void setNetwork(uint8_t value) { network = value; }
@@ -52,7 +56,6 @@ public:
   uint16_t getInterSymbolDelay() const { return interSymbolDelay; }
   bool isConnected() const;
   /* ChanEndpoint overrides */
-  bool claim(ChanEndpoint *newSource, bool &junkPacket) override;
   void notifyDestCanAcceptTokens(ticks_t time, unsigned tokens) override;
   bool canAcceptToken() override;
   bool canAcceptTokens(unsigned tokens) override;

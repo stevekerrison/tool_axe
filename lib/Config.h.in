@@ -51,6 +51,9 @@
 /// Size of the (input) buffer in a chanend.
 #define CHANEND_BUFFER_SIZE 8
 
+/// Size of the input buffer on an X-Link
+#define XLINK_BUFFER_SIZE 8
+
 /// Number of processor cycles per 100MHz timer tick
 #define CYCLES_PER_TICK 4
 

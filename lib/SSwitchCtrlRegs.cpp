@@ -7,6 +7,8 @@
 #include "ProcessorNode.h"
 #include "BitManip.h"
 #include <algorithm>
+#undef NDEBUG
+#include <cassert>
 
 using namespace axe;
 
@@ -128,7 +130,8 @@ static void writeXLinkStateReg(const Node *node, XLink &xLink, uint32_t value)
     xLink.setInterTokenDelay(getBitRange(value, 10, 0));
     xLink.setInterSymbolDelay(getBitRange(value, 21, 11));
   }
-  // Ignore RESET and HELLO.
+  // Ignore RESET
+  xLink.hello(getBit(value, 24));
   xLink.setFiveWire(getBit(value, 30));
   xLink.setEnabled(getBit(value, 31));
 }
