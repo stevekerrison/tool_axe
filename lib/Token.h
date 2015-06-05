@@ -16,7 +16,11 @@ enum ControlTokenValue {
   CT_ACK = 3,
   CT_NACK = 4,
   CT_WRITEC = 0xc0,
-  CT_READC = 0xc1
+  CT_READC = 0xc1,
+  CT_CREDIT8 = 0xe0,
+  CT_CREDIT64 = 0xe1,
+  CT_CREDIT16 = 0xe4,
+  CT_HELLO = 0xe6
 };
 
 class Token {
