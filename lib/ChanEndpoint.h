@@ -49,7 +49,7 @@ public:
   /// \param junkPacket Set to false if the packet should be junked, otherwise
   ///                   left unchanged.
   /// \return Whether a route was succesfully opened.
-  bool claim(ChanEndpoint *Source, bool &junkPacket);
+  virtual bool claim(ChanEndpoint *Source, bool &junkPacket);
 
   virtual bool canAcceptToken() = 0;
   virtual bool canAcceptTokens(unsigned tokens) = 0;

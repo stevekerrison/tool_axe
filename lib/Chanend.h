@@ -49,7 +49,7 @@ private:
   /// The source will be notified when the route becomes available with
   /// notifyDestClaimed().
   /// \return Whether a route was succesfully opened.
-  bool claim(ChanEndpoint *Source, bool &junkPacket);
+  //bool claim(ChanEndpoint *Source, bool &junkPacket) override;
 
   bool canAcceptToken() override;
   bool canAcceptTokens(unsigned tokens) override;

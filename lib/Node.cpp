@@ -6,6 +6,9 @@
 #include "Node.h"
 #include "BitManip.h"
 
+#undef NDEBUG
+#include <cassert>
+
 using namespace axe;
 
 XLink::XLink() :
@@ -38,6 +41,53 @@ bool XLink::isConnected() const
   if (!otherEnd || !otherEnd->isEnabled())
     return false;
   return isFiveWire() == otherEnd->isFiveWire();
+}
+
+bool XLink::claim(ChanEndpoint *newSource, bool &junkPacket) {
+  // TODO
+  assert(0);
+}
+
+void XLink::notifyDestClaimed(ticks_t time)
+{
+  // TODO
+  assert(0);
+}
+
+void XLink::notifyDestCanAcceptTokens(ticks_t time, unsigned tokens)
+{
+  // TODO
+  assert(0);
+}
+
+bool XLink::canAcceptToken()
+{
+  // TODO
+  assert(0);
+}
+
+bool XLink::canAcceptTokens(unsigned tokens)
+{
+  // TODO
+  assert(0);
+}
+
+void XLink::receiveDataToken(ticks_t time, uint8_t value)
+{
+  // TODO
+  assert(0);
+}
+
+void XLink::receiveDataTokens(ticks_t time, uint8_t *values, unsigned num)
+{
+  // TODO
+  assert(0);
+}
+
+void XLink::receiveCtrlToken(ticks_t time, uint8_t value)
+{
+  // TODO
+  assert(0);
 }
 
 Node::Node(Type t, unsigned numXLinks) :
@@ -144,6 +194,28 @@ ChanEndpoint *Node::getIncomingChanendDest(ResourceID ID, uint64_t *tokDelay)
 ChanEndpoint *Node::getOutgoingChanendDest(ResourceID ID, uint64_t *tokDelay)
 {
   return getIncomingChanendDest(ID, tokDelay);
+}
+
+ChanEndpoint *Node::getNextEndpoint(ResourceID ID)
+{
+  Node *node = this;
+  unsigned destNode = ID.node() >> node->getNonNodeNumberBits();
+  unsigned diff = destNode ^ node->getNodeID();
+  if (diff == 0) {
+    //Local delivery
+    if (ID.isConfig() && ID.num() == RES_CONFIG_SSCTRL) {
+      return &node->sswitch;
+    }
+    return node->getLocalChanendDest(ID);
+  }
+  // Lookup direction
+  unsigned bit = 31 - countLeadingZeros(diff);
+  unsigned direction = node->directions[bit];
+  // Lookup Xlink.
+  XLink *xLink = node->getXLinkForDirection(direction);
+  if (!xLink || !xLink->isConnected())
+    return 0;
+  return xLink;
 }
 
 bool Node::hasMatchingNodeID(ResourceID ID)

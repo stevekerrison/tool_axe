@@ -15,13 +15,14 @@
 #include "Resource.h"
 #include "Token.h"
 #include "SystemState.h"
+#include "ChanEndpoint.h"
 
 namespace axe {
 
 class Node;
 class ProcessorNode;
 
-class XLink {
+class XLink : public ChanEndpoint {
   friend class Node;
   Node *destNode;
   unsigned destXLinkNum;
@@ -50,6 +51,15 @@ public:
   void setInterSymbolDelay(uint16_t value) { interSymbolDelay = value; }
   uint16_t getInterSymbolDelay() const { return interSymbolDelay; }
   bool isConnected() const;
+  /* ChanEndpoint overrides */
+  bool claim(ChanEndpoint *newSource, bool &junkPacket) override;
+  void notifyDestCanAcceptTokens(ticks_t time, unsigned tokens) override;
+  bool canAcceptToken() override;
+  bool canAcceptTokens(unsigned tokens) override;
+  void receiveDataToken(ticks_t time, uint8_t value) override;
+  void receiveDataTokens(ticks_t time, uint8_t *values, unsigned num) override;
+  void receiveCtrlToken(ticks_t time, uint8_t value) override;
+  void notifyDestClaimed(ticks_t time) override;
 };
 
 class Node {
@@ -97,6 +107,7 @@ public:
   /// this node.
   virtual ChanEndpoint *getOutgoingChanendDest(ResourceID ID, uint64_t *tokDelay = 0);
   virtual ChanEndpoint *getLocalChanendDest(ResourceID ID, uint64_t *tokDelay = 0) = 0;
+  ChanEndpoint *getNextEndpoint(ResourceID ID);
   uint8_t getDirection(unsigned num) const { return directions[num]; }
   void setDirection(unsigned num, uint8_t value) { directions[num] = value; }
   Type getType() const { return type; }

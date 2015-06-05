@@ -45,21 +45,18 @@ private:
 public:
   SSwitch(Node *parent);
   void initRegisters() { regs.initRegisters(); }
-  void notifyDestClaimed(ticks_t time) override;
-
   void setScheduler(RunnableQueue *s) { scheduler = s; }
 
+  /* ChanEndpoint overrides */
   void notifyDestCanAcceptTokens(ticks_t time, unsigned tokens) override;
-
   bool canAcceptToken() override;
   bool canAcceptTokens(unsigned tokens) override;
-
   void receiveDataToken(ticks_t time, uint8_t value) override;
-
   void receiveDataTokens(ticks_t time, uint8_t *values, unsigned num) override;
-
   void receiveCtrlToken(ticks_t time, uint8_t value) override;
+  void notifyDestClaimed(ticks_t time) override;
   
+  /* Runnable */
   void run(ticks_t time) override;
 };
 
