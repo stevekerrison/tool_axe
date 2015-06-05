@@ -9,12 +9,13 @@
 #include "Token.h"
 #include "ChanEndpoint.h"
 #include "SSwitchCtrlRegs.h"
+#include "RunnableQueue.h"
 
 namespace axe {
 
 class Node;
 
-class SSwitch : public ChanEndpoint {
+class SSwitch : public Runnable, public ChanEndpoint {
 private:
   struct Request {
     bool write;
@@ -25,6 +26,7 @@ private:
   };
   Node *parent;
   SSwitchCtrlRegs regs;
+  RunnableQueue *scheduler;
   /// Length of a write request (excluding CT_END).
   static const unsigned writeRequestLength = 1 + 3 + 2 + 4;
   /// Length of a read request (excluding CT_END).
@@ -45,6 +47,8 @@ public:
   void initRegisters() { regs.initRegisters(); }
   void notifyDestClaimed(ticks_t time) override;
 
+  void setScheduler(RunnableQueue *s) { scheduler = s; }
+
   void notifyDestCanAcceptTokens(ticks_t time, unsigned tokens) override;
 
   bool canAcceptToken() override;
@@ -55,8 +59,10 @@ public:
   void receiveDataTokens(ticks_t time, uint8_t *values, unsigned num) override;
 
   void receiveCtrlToken(ticks_t time, uint8_t value) override;
-};
   
+  void run(ticks_t time) override;
+};
+
 } // End axe namespace
 
 #endif //_SSwitch_h_

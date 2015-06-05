@@ -14,10 +14,9 @@
 #include "SSwitch.h"
 #include "Resource.h"
 #include "Token.h"
+#include "SystemState.h"
 
 namespace axe {
-
-class SystemState;
 
 class Node;
 class ProcessorNode;
@@ -80,7 +79,7 @@ public:
   virtual void finalize();
   void setJtagIndex(unsigned value) { jtagIndex = value; }
   unsigned getJtagIndex() const { return jtagIndex; }
-  void setParent(SystemState *value) { parent = value; }
+  void setParent(SystemState *value);
   const SystemState *getParent() const { return parent; }
   SystemState *getParent() { return parent; }
   virtual void setNodeID(unsigned value);

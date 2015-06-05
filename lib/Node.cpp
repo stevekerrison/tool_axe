@@ -56,6 +56,11 @@ Node::~Node()
 }
 
 
+void Node::setParent(SystemState *value) {
+    parent = value;
+    sswitch.setScheduler(&parent->getScheduler());
+}
+
 void Node::connectXLink(unsigned num, Node *destNode, unsigned destNum)
 {
   xLinks[num].destNode = destNode;

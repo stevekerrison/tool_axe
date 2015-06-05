@@ -19,9 +19,11 @@ SSwitch::SSwitch(Node *p) :
   junkIncomingTokens(0),
   sendingResponse(false),
   sentTokens(0),
-  responseLength(0)
+  responseLength(0),
+  scheduler(0)
 {
   setJunkIncoming(false);
+  wakeUpTime = 0;
 }
 
 static uint16_t read16_be(const Token *p)
@@ -207,7 +209,7 @@ void SSwitch::receiveCtrlToken(ticks_t time, uint8_t value)
     junkIncomingTokens = false;
     release(time);
     return;
-  case CT_PAUSE:    
+  case CT_PAUSE:
     release(time);
     return;
   }
@@ -219,4 +221,9 @@ void SSwitch::receiveCtrlToken(ticks_t time, uint8_t value)
     return;
   }
   buf[recievedTokens++] = Token(value, true);
+}
+
+void SSwitch::run(ticks_t time)
+{
+    scheduler->push(*this, time + 1);
 }
