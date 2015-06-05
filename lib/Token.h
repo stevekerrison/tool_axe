@@ -11,6 +11,7 @@
 namespace axe {
 
 enum ControlTokenValue {
+  CT_HDR = 0, // TODO: This was a complete guess
   CT_END = 1,
   CT_PAUSE = 2,
   CT_ACK = 3,

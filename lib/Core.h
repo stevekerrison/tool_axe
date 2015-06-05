@@ -20,6 +20,7 @@
 #include <set>
 #include "Range.h"
 #include "Endianness.h"
+#include "ProcessorNode.h"
 
 namespace axe {
 
@@ -31,8 +32,6 @@ class ClockBlock;
 class Port;
 class Timer;
 class Tracer;
-
-class ProcessorNode;
 
 enum ProcessorState {
   PS_RAM_BASE = 0x00b,

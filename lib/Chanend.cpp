@@ -5,9 +5,7 @@
 
 #include "Chanend.h"
 #include "Core.h"
-#include "Node.h"
 #include <algorithm>
-
 #undef NDEBUG
 #include <cassert>
 
@@ -76,10 +74,10 @@ void Chanend::notifyDestCanAcceptTokens(ticks_t time, unsigned tokens)
 
 bool Chanend::openRoute()
 {
-  if (inPacket)
+  if (dest) {
     return true;
-  tokDelay = 0;
-  dest = getOwner().getParent().getChanendDest(destID, &tokDelay);
+  }
+  dest = getOwner().getParent().getParent()->getNextEndpoint(destID);
   if (!dest) {
     // TODO if dest in unset should give a link error exception.
     junkPacket = true;
@@ -167,8 +165,8 @@ outct(Thread &thread, uint8_t value, ticks_t time)
   if (!dest->canAcceptToken()) {
     pausedOut = &thread;
     return DESCHEDULE;
-  }  
-  dest->receiveCtrlToken(time + tokDelay, value);
+  }
+  dest->receiveCtrlToken(time, value);
   if (value == CT_END || value == CT_PAUSE) {
     inPacket = false;
     dest = 0;

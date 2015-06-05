@@ -15,11 +15,6 @@ namespace axe {
 
 class Chanend : public EventableResource, public ChanEndpoint {
 private:
-  // The destination resource ID.
-  uint32_t destID;
-  /// The destination channel end. Only valid when in the the middle of a
-  /// packet.
-  ChanEndpoint *dest;
   /// Input buffer.
   typedef ring_buffer<Token, CHANEND_BUFFER_SIZE> TokenBuffer;
   TokenBuffer buf;
@@ -79,7 +74,7 @@ private:
   void setPausedIn(Thread &t, bool wordInput);
 
 public:
-  Chanend() : EventableResource(RES_TYPE_CHANEND) {}
+  Chanend() : EventableResource(RES_TYPE_CHANEND) { }
 
   bool alloc(Thread &t) override
   {

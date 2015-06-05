@@ -13,15 +13,20 @@ using namespace axe;
 
 XLink::XLink() :
   destNode(0),
+  parent(0),
   destXLinkNum(0),
   enabled(false),
   fiveWire(false),
+  waiting(false),
   network(0),
   direction(0),
   // TODO find out defaults.
   interTokenDelay(0),
   interSymbolDelay(0),
-  outputCredit(0)
+  outputCredit(0),
+  wakeTime(-1),
+  tokDelay(0),
+  issuedCredit(false)
 {
 }
 
@@ -42,10 +47,15 @@ bool XLink::isConnected() const
   return isFiveWire() == otherEnd->isFiveWire();
 }
 
-void XLink::hello(bool value) {
+void XLink::setTokDelay() {
+  uint8_t bps = isFiveWire() ? 2 : 1;
+  tokDelay = 8/bps * interSymbolDelay + interTokenDelay;
+}
+
+void XLink::hello(ticks_t time, bool value) {
   if (value) {
     outputCredit = 0;
-    getDestXLink()->receiveCtrlToken(0, CT_HELLO);
+    getDestXLink()->receiveCtrlToken(time + tokDelay, CT_HELLO);
   }
 }
 
@@ -84,11 +94,38 @@ void XLink::receiveDataTokens(ticks_t time, uint8_t *values, unsigned num)
   assert(0);
 }
 
-void XLink::receiveCtrlToken(ticks_t time, uint8_t value)
+bool XLink::openRoute()
 {
-  switch (value) {
+  /*if (inPacket)
+    return true;
+  dest = getOwner().getParent().getChanendDest(destID, &tokDelay);
+  if (!dest) {
+    // TODO if dest in unset should give a link error exception.
+    junkPacket = true;
+  } else if (!dest->claim(this, junkPacket)) {
+    return false;
+  }
+  inPacket = true;
+  return true;
+  // TODO
+  assert(0);*/
+  
+}
+
+
+void XLink::run(ticks_t time) {
+  if (time < wakeTime) return;
+  bool canpop = true;
+  assert(!buf.empty());
+  Token t = buf.front();
+  uint8_t value = t.getValue();
+  if (t.isControl()) {
+    switch (value) {
     case CT_HELLO:
       {
+        canpop = false; //We do this early for CREDITing
+        issuedCredit = true;
+        buf.pop_front();
         uint8_t credit = 0, bufrem = buf.remaining() * 8;
         if (bufrem >= 64) {
           credit = CT_CREDIT64;
@@ -100,7 +137,7 @@ void XLink::receiveCtrlToken(ticks_t time, uint8_t value)
           //Oops, no credit for you!
         }
         if (credit) {
-          getDestXLink()->receiveCtrlToken(0, credit);
+          getDestXLink()->receiveCtrlToken(time + tokDelay, credit);
         }
       }
       break;
@@ -114,9 +151,34 @@ void XLink::receiveCtrlToken(ticks_t time, uint8_t value)
       outputCredit += 8;
       break;
     default:
+      canpop = false;
+      {
+        //ChanEndpoint *nextDest = parent->getNextEndpoint(getSource()->getDestID());
+        //nextDest->receiveCtrlToken(0, value);
+        if (value == CT_END || value == CT_PAUSE) {
+          //release(
+        }
+      }
       // TODO
       assert(0 && "Forward tokens & handle END/PAUSE");
+      break;
+    }
+  } else {
+    assert(0 && "Handle non-control tokens");
   }
+  if (canpop) {
+    buf.pop_front();
+  }
+  wakeTime = buf.empty() ? -1 : time + 1;
+}
+
+void XLink::receiveCtrlToken(ticks_t time, uint8_t value)
+{
+  assert(buf.remaining() > 0);
+  buf.push_back(Token(value, true));
+  assert(time > 0);
+  wakeTime = time;
+  return;
 }
 
 Node::Node(Type t, unsigned numXLinks) :
@@ -128,6 +190,9 @@ Node::Node(Type t, unsigned numXLinks) :
   nodeNumberBits(16)
 {
   xLinks.resize(numXLinks);
+  for (auto &l : xLinks) {
+    l.parent = this;
+  }
 }
 
 Node::~Node()

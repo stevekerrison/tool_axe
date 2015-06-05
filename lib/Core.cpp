@@ -18,6 +18,9 @@
 #include <iomanip>
 #include <sstream>
 
+#undef NDEBUG
+#include <cassert>
+
 using namespace axe;
 
 Core::Core(uint32_t RamSize, uint32_t RamBase, bool tracing) :
@@ -338,6 +341,7 @@ ChanEndpoint *Core::getChanendDest(ResourceID ID, uint64_t *tokDelay)
   // Try to lookup locally first.
   if (getLocalChanendDest(ID, result, tokDelay))
     return result;
+  assert(0);
   return parent->getNextEndpoint(ID);
 }
 

@@ -17,9 +17,15 @@ private:
   bool junkIncoming;
   /// Chanends blocked on the route to this channel end becoming free.
   std::queue<ChanEndpoint *> queue;
+protected:
+  uint32_t destID;
+  /// The destination channel end. Only valid when in the the middle of a
+  /// packet.
+  ChanEndpoint *dest;
   /// The source of the current packet, 0 if not receiving a packet.
   ChanEndpoint *source;
-protected:
+  
+  /// Where the n
   void setJunkIncoming(bool value) { junkIncoming = value; }
   ChanEndpoint *getSource() const { return source; }  
   /// End the current packet being sent to the channel end.
@@ -35,6 +41,7 @@ protected:
   /// Record the route delay per token, assuming tok/sym delays do not change
   uint64_t delay;
 public:
+  uint32_t getDestID() { return destID; }
   /// Give notification that a route to the destination has been opened.
   virtual void notifyDestClaimed(ticks_t time) = 0;
 
