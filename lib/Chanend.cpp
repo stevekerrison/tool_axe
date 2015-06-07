@@ -81,8 +81,14 @@ bool Chanend::openRoute()
   if (!dest) {
     // TODO if dest in unset should give a link error exception.
     junkPacket = true;
-  } else if (!dest->claim(this, junkPacket)) {
-    return false;
+  } else {
+    ChanEndpoint *ce = dest->claim(this, junkPacket);
+    if (!ce) {
+      return false;
+    } else {
+      //Destination may be refined by successfull claim().
+      dest = ce;
+    }
   }
   inPacket = true;
   return true;

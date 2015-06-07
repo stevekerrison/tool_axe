@@ -96,6 +96,7 @@ void SSwitch::handleRequest(ticks_t time, const Request &request)
   ResourceID destID = ResourceID::chanendID(request.returnNum,
                                             request.returnNode);
   Tracer *tracer = parent->getParent()->getTracer();
+  ChanEndpoint *dest = parent->getNextEndpoint(destID);
   if (request.write) {
     ack = regs.write(time, request.regNum, request.data);
     if (tracer) {
@@ -115,12 +116,15 @@ void SSwitch::handleRequest(ticks_t time, const Request &request)
         tracer->SSwitchNack(*parent, destID);
     }
   }
-  ChanEndpoint *dest = parent->getNextEndpoint(destID);
   if (!dest)
     return;
   bool junkPacket = false;
-  if (!dest->claim(this, junkPacket)) {
+  ChanEndpoint *ce = dest->claim(this, junkPacket);
+  if (!ce) {
     assert(0 && "TODO");
+  } else {
+    //Potentially refine destination after claim()
+    dest = ce;
   }
   if (junkPacket)
     return;
