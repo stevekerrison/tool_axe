@@ -55,9 +55,11 @@ void XLink::setTokDelay() {
 
 void XLink::setDirection(uint8_t value)
 {
-  parent->xLinkGroups[direction].xLinks.erase(this);
-  direction = value;
-  parent->xLinkGroups[direction].xLinks.insert(this);
+  if (value != direction) {
+    parent->xLinkGroups[direction].xLinks.erase(this);
+    direction = value;
+    parent->xLinkGroups[direction].xLinks.insert(this);
+  }
 }
 
 void XLink::hello(ticks_t time, bool value) {
@@ -133,7 +135,7 @@ void XLink::run(ticks_t time) {
       {
         canpop = false; //We do this early for CREDITing
         issuedCredit = true;
-        buf.pop_front();
+        buf.clear();
         uint8_t credit = 0, bufrem = buf.remaining() * 8;
         if (bufrem >= 64) {
           credit = CT_CREDIT64;
@@ -205,9 +207,8 @@ void XLink::release(ticks_t time)
 
 ChanEndpoint *XLinkGroup::claim(ChanEndpoint *newSource, bool &junkPacket)
 {
-  assert(0 && "Implement XLinkGroup claiming");
   for (auto &xLink: xLinks) {
-    if (!xLink->source) {
+    if (!xLink->source && xLink->isConnected()) {
       xLink->source = newSource;
       // Change the ChanEndpoint to the actual link that will be used.
       return xLink;
