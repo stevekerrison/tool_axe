@@ -13,24 +13,24 @@ ChanEndpoint::ChanEndpoint() :
 {
 }
 
-bool ChanEndpoint::claim(ChanEndpoint *newSource, bool &junkPacket)
+ChanEndpoint *ChanEndpoint::claim(ChanEndpoint *newSource, bool &junkPacket)
 {
   if (junkIncoming) {
     junkPacket = true;
-    return true;
+    return this;
   }
   // Check if the route is already open.
   if (source == newSource) {
-    return true;
+    return this;
   }
   // Check if we are already in the middle of a packet.
   if (source) {
     queue.push(newSource);
-    return false;
+    return 0;
   }
   // Claim the channel
   source = newSource;
-  return true;
+  return this;
 }
 
 void ChanEndpoint::release(ticks_t time)

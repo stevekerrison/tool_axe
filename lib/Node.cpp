@@ -3,6 +3,7 @@
 // University of Illinois/NCSA Open Source License posted in
 // LICENSE.txt and at <http://github.xcore.com/>
 
+#include <algorithm>
 #include "Node.h"
 #include "BitManip.h"
 
@@ -50,6 +51,13 @@ bool XLink::isConnected() const
 void XLink::setTokDelay() {
   uint8_t bps = isFiveWire() ? 2 : 1;
   tokDelay = 8/bps * interSymbolDelay + interTokenDelay;
+}
+
+void XLink::setDirection(uint8_t value)
+{
+  parent->xLinkGroups[direction].xLinks.erase(this);
+  direction = value;
+  parent->xLinkGroups[direction].xLinks.insert(this);
 }
 
 void XLink::hello(ticks_t time, bool value) {
@@ -181,6 +189,77 @@ void XLink::receiveCtrlToken(ticks_t time, uint8_t value)
   return;
 }
 
+void XLink::release(ticks_t time)
+{
+  XLinkGroup *g = &parent->xLinkGroups[direction];
+  if (g->queue.empty()) {
+    source = 0;
+    return;
+  }
+  source = queue.front();
+  queue.pop();
+  source->notifyDestClaimed(time);
+}
+
+/** XLinkGroup **/
+
+ChanEndpoint *XLinkGroup::claim(ChanEndpoint *newSource, bool &junkPacket)
+{
+  assert(0 && "Implement XLinkGroup claiming");
+  for (auto &xLink: xLinks) {
+    if (!xLink->source) {
+      xLink->source = newSource;
+      // Change the ChanEndpoint to the actual link that will be used.
+      return xLink;
+    }
+  }
+  // No available links right now, so defer to the queue
+  queue.push(newSource);
+  return 0;
+}
+
+void XLinkGroup::notifyDestClaimed(ticks_t time)
+{
+  // TODO
+  assert(0);
+}
+
+void XLinkGroup::notifyDestCanAcceptTokens(ticks_t time, unsigned tokens)
+{
+  // TODO
+  assert(0);
+}
+
+bool XLinkGroup::canAcceptToken()
+{
+  // TODO
+  assert(0);
+}
+
+bool XLinkGroup::canAcceptTokens(unsigned tokens)
+{
+  // TODO
+  assert(0);
+}
+
+void XLinkGroup::receiveDataToken(ticks_t time, uint8_t value)
+{
+  // TODO
+  assert(0);
+}
+
+void XLinkGroup::receiveDataTokens(ticks_t time, uint8_t *values, unsigned num)
+{
+  // TODO
+  assert(0);
+}
+
+void XLinkGroup::receiveCtrlToken(ticks_t time, uint8_t value)
+{
+  // TODO
+  assert(0);
+}
+
 Node::Node(Type t, unsigned numXLinks) :
   type(t),
   jtagIndex(0),
@@ -192,6 +271,7 @@ Node::Node(Type t, unsigned numXLinks) :
   xLinks.resize(numXLinks);
   for (auto &l : xLinks) {
     l.parent = this;
+    xLinkGroups[l.direction].xLinks.insert(&l);
   }
 }
 
@@ -211,11 +291,10 @@ void Node::connectXLink(unsigned num, Node *destNode, unsigned destNum)
   xLinks[num].destXLinkNum = destNum;
 }
 
-XLink *Node::getXLinkForDirection(unsigned direction)
+ChanEndpoint *Node::getXLinkForDirection(unsigned direction)
 {
-  for (XLink &xLink : xLinks) {
-    if (xLink.isEnabled() && xLink.getDirection() == direction)
-      return &xLink;
+  if (xLinkGroups[direction].xLinks.size() > 0) {
+    return &xLinkGroups[direction];
   }
   return 0;
 }
@@ -262,7 +341,8 @@ ChanEndpoint *Node::getIncomingChanendDest(ResourceID ID, uint64_t *tokDelay)
     unsigned bit = 31 - countLeadingZeros(diff);
     unsigned direction = node->directions[bit];
     // Lookup Xlink.
-    XLink *xLink = node->getXLinkForDirection(direction);
+    assert(0 && "FIX");
+    XLink *xLink;// = node->getXLinkForDirection(direction);
     if (!xLink || !xLink->isConnected())
       return 0;
     node = xLink->destNode;
@@ -305,12 +385,8 @@ ChanEndpoint *Node::getNextEndpoint(ResourceID ID)
   // Lookup direction
   unsigned bit = 31 - countLeadingZeros(diff);
   unsigned direction = node->directions[bit];
-  // Lookup Xlink.
-  XLink *xLink = node->getXLinkForDirection(direction);
-  if (!xLink || !xLink->isConnected())
-    return 0;
-  xLink->setJunkIncoming(false);
-  return xLink;
+  // Lookup Xlink(group).
+  return node->getXLinkForDirection(direction);
 }
 
 bool Node::hasMatchingNodeID(ResourceID ID)

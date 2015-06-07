@@ -7,6 +7,7 @@
 #define _ChanEndpoint_h_
 
 #include <queue>
+#include <vector>
 #include "Config.h"
 
 namespace axe {
@@ -15,9 +16,9 @@ class ChanEndpoint {
 private:
   /// Should incoming packets be junked?
   bool junkIncoming;
+protected:
   /// Chanends blocked on the route to this channel end becoming free.
   std::queue<ChanEndpoint *> queue;
-protected:
   uint32_t destID;
   /// The destination channel end. Only valid when in the the middle of a
   /// packet.
@@ -28,8 +29,6 @@ protected:
   /// Where the n
   void setJunkIncoming(bool value) { junkIncoming = value; }
   ChanEndpoint *getSource() const { return source; }  
-  /// End the current packet being sent to the channel end.
-  void release(ticks_t time);
 
   /// Try and open a route for a packet. If a route cannot be opened the chanend
   /// is registered with the destination and notifyDestClaimed() will be called
@@ -56,8 +55,11 @@ public:
   /// \param junkPacket Set to false if the packet should be junked, otherwise
   ///                   left unchanged.
   /// \return Whether a route was succesfully opened.
-  virtual bool claim(ChanEndpoint *Source, bool &junkPacket);
-
+  virtual ChanEndpoint *claim(ChanEndpoint *Source, bool &junkPacket);
+  
+    /// End the current packet being sent to the channel end.
+  virtual void release(ticks_t time);
+  
   virtual bool canAcceptToken() = 0;
   virtual bool canAcceptTokens(unsigned tokens) = 0;
 

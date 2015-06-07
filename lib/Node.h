@@ -8,6 +8,7 @@
 
 #include <stdint.h>
 #include <vector>
+#include <set>
 #include <memory>
 #include <queue>
 
@@ -26,6 +27,7 @@ class ProcessorNode;
 class XLink : public ChanEndpoint {
   friend class Node;
   friend class SSwitch;
+  friend class XLinkGroup;
   Node *destNode;
   Node *parent;
   unsigned destXLinkNum;
@@ -59,7 +61,7 @@ public:
   bool hasIssuedCredit() const { return issuedCredit; }
   bool hasCredit() const { return outputCredit >= 8; }
   uint8_t getNetwork() const { return network; }
-  void setDirection(uint8_t value) { direction = value; }
+  void setDirection(uint8_t value);
   uint8_t getDirection() const { return direction; }
   void setInterTokenDelay(uint16_t value) { interTokenDelay = value; }
   uint16_t getInterTokenDelay() const { return interTokenDelay; }
@@ -67,7 +69,27 @@ public:
   uint16_t getInterSymbolDelay() const { return interSymbolDelay; }
   bool isConnected() const;
   void run(ticks_t time);
-  /* ChanEndpoint overrides */
+  
+    /* ChanEndpoint overrides */
+  void release(ticks_t time);
+  void notifyDestCanAcceptTokens(ticks_t time, unsigned tokens) override;
+  bool canAcceptToken() override;
+  bool canAcceptTokens(unsigned tokens) override;
+  void receiveDataToken(ticks_t time, uint8_t value) override;
+  void receiveDataTokens(ticks_t time, uint8_t *values, unsigned num) override;
+  void receiveCtrlToken(ticks_t time, uint8_t value) override;
+  void notifyDestClaimed(ticks_t time) override;
+};
+
+class XLinkGroup : public ChanEndpoint {
+  friend class Node;
+  friend class XLink;
+  std::set<XLink *> xLinks;
+  
+public:
+    /* ChanEndpoint overrides */
+  ChanEndpoint *claim(ChanEndpoint *Source, bool &junkPacket);
+
   void notifyDestCanAcceptTokens(ticks_t time, unsigned tokens) override;
   bool canAcceptToken() override;
   bool canAcceptTokens(unsigned tokens) override;
@@ -85,13 +107,14 @@ public:
   };
   Type type;
   std::vector<XLink> xLinks;
+  XLinkGroup xLinkGroups[8];
   std::vector<uint8_t> directions;
   unsigned jtagIndex;
   unsigned nodeID;
   SystemState *parent;
   SSwitch sswitch;
   unsigned nodeNumberBits;
-  XLink *getXLinkForDirection(unsigned direction);
+  ChanEndpoint *getXLinkForDirection(unsigned direction);
 protected:
   void setNodeNumberBits(unsigned value);
 public:

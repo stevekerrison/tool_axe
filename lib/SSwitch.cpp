@@ -115,7 +115,7 @@ void SSwitch::handleRequest(ticks_t time, const Request &request)
         tracer->SSwitchNack(*parent, destID);
     }
   }
-  ChanEndpoint *dest = parent->getOutgoingChanendDest(destID);
+  ChanEndpoint *dest = parent->getNextEndpoint(destID);
   if (!dest)
     return;
   bool junkPacket = false;
