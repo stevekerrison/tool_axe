@@ -150,7 +150,7 @@ out(Thread &thread, uint32_t value, ticks_t time)
     static_cast<uint8_t>(value)
   };
   //TODO: Account for four-token delay here
-  dest->receiveDataTokens(time + tokDelay, tokens, 4);
+  dest->receiveDataTokens(time, tokens, 4);
   return CONTINUE;
 }
 

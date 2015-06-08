@@ -82,12 +82,12 @@ void XLink::notifyDestCanAcceptTokens(ticks_t time, unsigned tokens)
 
 bool XLink::canAcceptToken()
 {
-  return buf.size() > 0;
+  return XLINK_BUFFER_SIZE - buf.size() > 0;
 }
 
 bool XLink::canAcceptTokens(unsigned tokens)
 {
-  return buf.size() > tokens;
+  return XLINK_BUFFER_SIZE - buf.size() >= tokens;
 }
 
 void XLink::receiveDataToken(ticks_t time, uint8_t value)
