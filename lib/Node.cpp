@@ -82,13 +82,12 @@ void XLink::notifyDestCanAcceptTokens(ticks_t time, unsigned tokens)
 
 bool XLink::canAcceptToken()
 {
-  return outputCredit >= 8;
+  return buf.size() > 0;
 }
 
 bool XLink::canAcceptTokens(unsigned tokens)
 {
-  // TODO
-  assert(0);
+  return buf.size() > tokens;
 }
 
 void XLink::receiveDataToken(ticks_t time, uint8_t value)
@@ -105,9 +104,9 @@ void XLink::receiveDataTokens(ticks_t time, uint8_t *values, unsigned num)
 
 bool XLink::openRoute()
 {
-  /*if (inPacket)
+  if (dest)
     return true;
-  dest = getOwner().getParent().getChanendDest(destID, &tokDelay);
+  dest = parent->getNextEndpoint(destID);
   if (!dest) {
     // TODO if dest in unset should give a link error exception.
     junkPacket = true;
@@ -116,14 +115,42 @@ bool XLink::openRoute()
   }
   inPacket = true;
   return true;
-  // TODO
-  assert(0);*/
-  
+}
+
+bool XLink::forward(ticks_t time, Token &t) {
+  if (!openRoute()) {
+    assert(0 && "Handle XLink wait on route");
+    return false;
+  }
+  uint8_t value = t.getValue();
+  if (junkPacket) {
+    if (t.isControl() && (value == CT_END || value == CT_PAUSE)) {
+      inPacket = false;
+      junkPacket = false;
+    }
+    return true;
+  }
+  if (!dest->canAcceptToken()) {
+    assert(0 && "Handle XLink wait on buffer");
+    return false;
+  }
+  if (t.isControl()) {
+    dest->receiveCtrlToken(time, value);
+    if (value == CT_END || value == CT_PAUSE) {
+      assert(0 && "Handle END/PAUSE");
+      inPacket = false;
+      dest = 0;
+    }
+  } else {
+    dest->receiveDataToken(time, value);
+  }
+  return true;
 }
 
 
 void XLink::run(ticks_t time) {
   bool canpop = true;
+  XLink *destLink = getDestXLink();
   assert(!buf.empty());
   Token t = buf.front();
   uint8_t value = t.getValue();
@@ -133,48 +160,34 @@ void XLink::run(ticks_t time) {
       {
         canpop = false; //We do this early for CREDITing
         issuedCredit = true;
-        buf.clear();
-        uint8_t credit = 0, bufrem = buf.remaining() * 8;
-        credit = CT_CREDIT64;
-        if (parent->getNodeID() != 0) {
-          buf.clear();
-        }
-        getDestXLink()->receiveCtrlToken(time + tokDelay, credit);
+        buf.pop_front();
+        uint8_t credit = CT_CREDIT64;
+        destLink->receiveCtrlToken(time + tokDelay, credit);
       }
       break;
     case CT_CREDIT64:
-      if (outputCredit == 0 && source) {
-        source->notifyDestCanAcceptTokens(time, 8);
+      if (outputCredit == 0 && destLink->source) {
+        destLink->source->notifyDestCanAcceptTokens(time, 8);
       }
       outputCredit += 64;
       break;
     case CT_CREDIT16:
       if (outputCredit == 0 && source) {
-        source->notifyDestCanAcceptTokens(time, 2);
+        destLink->source->notifyDestCanAcceptTokens(time, 2);
       }
       outputCredit += 16;
       break;
     case CT_CREDIT8:
       if (outputCredit == 0 && source) {
-        source->notifyDestCanAcceptTokens(time, 8);
+        destLink->source->notifyDestCanAcceptTokens(time, 8);
       }
       outputCredit += 8;
       break;
     default:
-      canpop = false;
-      {
-        //ChanEndpoint *nextDest = parent->getNextEndpoint(getSource()->getDestID());
-        //nextDest->receiveCtrlToken(0, value);
-        if (value == CT_END || value == CT_PAUSE) {
-          //release(
-        }
-      }
-      // TODO
-      assert(0 && "Forward tokens & handle END/PAUSE");
-      break;
+      canpop = forward(time, t);
     }
   } else {
-    assert(0 && "Handle non-control tokens");
+    canpop = forward(time, t);
   }
   if (canpop) {
     buf.pop_front();
@@ -198,6 +211,7 @@ void XLink::release(ticks_t time)
   XLinkGroup *g = &parent->xLinkGroups[direction];
   if (g->queue.empty()) {
     source = 0;
+    destID = 0;
     return;
   }
   source = queue.front();
@@ -210,10 +224,11 @@ void XLink::release(ticks_t time)
 ChanEndpoint *XLinkGroup::claim(ChanEndpoint *newSource, bool &junkPacket)
 {
   for (auto &xLink: xLinks) {
-    if (!xLink->source && xLink->isConnected()) {
-      xLink->source = newSource;
+    if (!xLink->getDestXLink()->source && xLink->isConnected()) {
+      xLink->getDestXLink()->source = newSource;
+      xLink->getDestXLink()->destID = newSource->getDestID();
       // Change the ChanEndpoint to the actual link that will be used.
-      return xLink;
+      return xLink->getDestXLink();
     }
   }
   // No available links right now, so defer to the queue

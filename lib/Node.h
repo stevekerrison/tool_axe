@@ -48,6 +48,7 @@ class XLink : public Runnable, public ChanEndpoint {
   XLinkBuffer buf;
 protected:
   bool openRoute();
+  bool forward(ticks_t time, Token &t);
 public:
   XLink();
   Node *getDestNode() { return destNode; }

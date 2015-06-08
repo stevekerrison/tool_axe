@@ -25,6 +25,10 @@ protected:
   ChanEndpoint *dest;
   /// The source of the current packet, 0 if not receiving a packet.
   ChanEndpoint *source;
+  /// Are we in the middle of sending a packet?
+  bool inPacket;
+  /// Should be current packet be junked?
+  bool junkPacket;
   
   /// Where the n
   void setJunkIncoming(bool value) { junkIncoming = value; }

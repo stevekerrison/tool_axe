@@ -24,10 +24,7 @@ private:
   Thread *pausedIn;
   /// Is the pausedIn thread waiting for a word? Only valid if pausedIn is set.
   bool waitForWord;
-  /// Are we in the middle of sending a packet?
-  bool inPacket;
-  /// Should be current packet be junked?
-  bool junkPacket;
+
   /// What's the delay to our destination?
   uint64_t tokDelay;
 

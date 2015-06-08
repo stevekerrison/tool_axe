@@ -9,6 +9,7 @@ using namespace axe;
 
 ChanEndpoint::ChanEndpoint() :
   junkIncoming(true),
+  inPacket(false),
   source(0)
 {
 }
