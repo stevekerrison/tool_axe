@@ -20,8 +20,7 @@ SSwitch::SSwitch(Node *p) :
   junkIncomingTokens(0),
   sendingResponse(false),
   sentTokens(0),
-  responseLength(0),
-  scheduler(0)
+  responseLength(0)
 {
   setJunkIncoming(false);
   wakeUpTime = 0;
@@ -239,5 +238,5 @@ void SSwitch::handleTokens(ticks_t time)
 void SSwitch::run(ticks_t time)
 {
     handleTokens(time);
-    scheduler->push(*this, time + 1);
+    //scheduler->push(*this, time + 1);
 }

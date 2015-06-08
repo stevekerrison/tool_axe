@@ -12,6 +12,7 @@
 #include <memory>
 #include <queue>
 
+#include "RunnableQueue.h"
 #include "SSwitch.h"
 #include "Resource.h"
 #include "Token.h"
@@ -24,7 +25,7 @@ namespace axe {
 class Node;
 class ProcessorNode;
 
-class XLink : public ChanEndpoint {
+class XLink : public Runnable, public ChanEndpoint {
   friend class Node;
   friend class SSwitch;
   friend class XLinkGroup;

@@ -296,7 +296,6 @@ int BootSequenceStepElf::execute(ExecutionState &state)
   }
   if (useElfEntryPoint) {
     sys.schedule(core->getThread(0));
-    sys.scheduleOther(*core->getParent()->getSSwitch(), 0);
     core->getThread(0).setPcFromAddress(entryPoint);
   }
 
@@ -307,7 +306,6 @@ int BootSequenceStepSchedule::execute(ExecutionState &state)
 {
   SystemState &sys = state.sys;
   sys.schedule(core->getThread(0));
-  sys.scheduleOther(*core->getParent()->getSSwitch(), 0);
   core->getThread(0).setPcFromAddress(address);
   return 0;
 }

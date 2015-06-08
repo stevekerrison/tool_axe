@@ -25,7 +25,6 @@ XLink::XLink() :
   interTokenDelay(0),
   interSymbolDelay(0),
   outputCredit(0),
-  wakeTime(-1),
   tokDelay(0),
   issuedCredit(false)
 {
@@ -124,7 +123,6 @@ bool XLink::openRoute()
 
 
 void XLink::run(ticks_t time) {
-  if (time < wakeTime) return;
   bool canpop = true;
   assert(!buf.empty());
   Token t = buf.front();
@@ -137,27 +135,29 @@ void XLink::run(ticks_t time) {
         issuedCredit = true;
         buf.clear();
         uint8_t credit = 0, bufrem = buf.remaining() * 8;
-        if (bufrem >= 64) {
-          credit = CT_CREDIT64;
-        } else if (bufrem >= 16) {
-          credit = CT_CREDIT16;
-        } else if (bufrem >= 8) {
-          credit = CT_CREDIT8;
-        } else {
-          //Oops, no credit for you!
+        credit = CT_CREDIT64;
+        if (parent->getNodeID() != 0) {
+          buf.clear();
         }
-        if (credit) {
-          getDestXLink()->receiveCtrlToken(time + tokDelay, credit);
-        }
+        getDestXLink()->receiveCtrlToken(time + tokDelay, credit);
       }
       break;
     case CT_CREDIT64:
+      if (outputCredit == 0 && source) {
+        source->notifyDestCanAcceptTokens(time, 8);
+      }
       outputCredit += 64;
       break;
     case CT_CREDIT16:
+      if (outputCredit == 0 && source) {
+        source->notifyDestCanAcceptTokens(time, 2);
+      }
       outputCredit += 16;
       break;
     case CT_CREDIT8:
+      if (outputCredit == 0 && source) {
+        source->notifyDestCanAcceptTokens(time, 8);
+      }
       outputCredit += 8;
       break;
     default:
@@ -179,15 +179,17 @@ void XLink::run(ticks_t time) {
   if (canpop) {
     buf.pop_front();
   }
-  wakeTime = buf.empty() ? -1 : time + 1;
+  if (!buf.empty()) {
+    parent->getParent()->getScheduler().push(*this, time + tokDelay);
+  }
 }
 
 void XLink::receiveCtrlToken(ticks_t time, uint8_t value)
 {
-  assert(buf.remaining() > 0);
+  if (buf.empty()) {
+    parent->getParent()->getScheduler().push(*this, time);
+  }
   buf.push_back(Token(value, true));
-  assert(time > 0);
-  wakeTime = time;
   return;
 }
 
@@ -283,13 +285,14 @@ Node::~Node()
 
 void Node::setParent(SystemState *value) {
     parent = value;
-    sswitch.setScheduler(&parent->getScheduler());
 }
 
 void Node::connectXLink(unsigned num, Node *destNode, unsigned destNum)
 {
   xLinks[num].destNode = destNode;
   xLinks[num].destXLinkNum = destNum;
+  assert((xLinks[num].getDestXLink()->destNode == 0 ||
+    xLinks[num].getDestXLink()->destNode == this));
 }
 
 ChanEndpoint *Node::getXLinkForDirection(unsigned direction)

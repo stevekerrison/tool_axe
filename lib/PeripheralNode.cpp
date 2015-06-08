@@ -7,7 +7,7 @@
 
 using namespace axe;
 
-PeripheralNode::PeripheralNode() : Node(Node::XS1_L, 1)
+PeripheralNode::PeripheralNode() : Node(Node::XS1_L, 1), Runnable()
 {
   // Set the number of node bits to 0 so the switch accepts all messages.
   setNodeNumberBits(0);
@@ -35,4 +35,9 @@ ChanEndpoint *PeripheralNode::getOutgoingChanendDest(ResourceID ID, uint64_t *to
 ChanEndpoint *PeripheralNode::getLocalChanendDest(ResourceID ID, uint64_t *tokDelay)
 {
   return nullptr;
+}
+
+void PeripheralNode::run(ticks_t time)
+{
+    assert(0);//handleTokens(time);
 }

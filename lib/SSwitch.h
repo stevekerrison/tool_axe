@@ -26,7 +26,6 @@ private:
   };
   Node *parent;
   SSwitchCtrlRegs regs;
-  RunnableQueue *scheduler;
   /// Length of a write request (excluding CT_END).
   static const unsigned writeRequestLength = 1 + 3 + 2 + 4;
   /// Length of a read request (excluding CT_END).
@@ -46,7 +45,6 @@ private:
 public:
   SSwitch(Node *parent);
   void initRegisters() { regs.initRegisters(); }
-  void setScheduler(RunnableQueue *s) { scheduler = s; }
 
   /* ChanEndpoint overrides */
   void notifyDestCanAcceptTokens(ticks_t time, unsigned tokens) override;

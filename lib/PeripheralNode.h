@@ -10,12 +10,13 @@
 
 namespace axe {
 
-class PeripheralNode : public Node {
+class PeripheralNode : public Runnable, public Node {
 public:
   PeripheralNode();
   void finalize() override;
   ChanEndpoint *getOutgoingChanendDest(ResourceID ID, uint64_t *tokDelay = 0) override;
   ChanEndpoint *getLocalChanendDest(ResourceID ID, uint64_t *tokDelay = 0) override;
+  void run(ticks_t time) override;
 };
 
 }  // End axe namespace
