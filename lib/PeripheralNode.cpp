@@ -4,10 +4,13 @@
 // LICENSE.txt and at <http://github.xcore.com/>
 
 #include "PeripheralNode.h"
+#undef NDEBUG
+#include <cassert>
+
 
 using namespace axe;
 
-PeripheralNode::PeripheralNode() : Node(Node::XS1_L, 1), Runnable()
+PeripheralNode::PeripheralNode() : Node(Node::XS1_L, 1)
 {
   // Set the number of node bits to 0 so the switch accepts all messages.
   setNodeNumberBits(0);
@@ -21,6 +24,7 @@ void PeripheralNode::finalize()
   XLink &xlink = getXLink(0);
   xlink.setFiveWire(true);
   xlink.setEnabled(true);
+  Node::finalize();
 }
 
 ChanEndpoint *PeripheralNode::getOutgoingChanendDest(ResourceID ID, uint64_t *tokDelay)
@@ -34,6 +38,10 @@ ChanEndpoint *PeripheralNode::getOutgoingChanendDest(ResourceID ID, uint64_t *to
 
 ChanEndpoint *PeripheralNode::getLocalChanendDest(ResourceID ID, uint64_t *tokDelay)
 {
+  // TODO: More endpoints?
+  if (ID.num() == 1) {
+    return &this->sswitch;
+  }
   return nullptr;
 }
 

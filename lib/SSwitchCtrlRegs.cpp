@@ -130,7 +130,7 @@ static void writeXLinkStateReg(ticks_t time, const Node *node, XLink &xLink, uin
     xLink.setInterTokenDelay(getBitRange(value, 10, 0));
     xLink.setInterSymbolDelay(getBitRange(value, 21, 11));
   }
-  // Ignore RESET
+  // Ignore RESET (TODO: do not ignore reset)
   xLink.hello(time, getBit(value, 24));
   xLink.setFiveWire(getBit(value, 30));
   xLink.setEnabled(getBit(value, 31));

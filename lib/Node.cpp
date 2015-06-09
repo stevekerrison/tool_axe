@@ -92,14 +92,22 @@ bool XLink::canAcceptTokens(unsigned tokens)
 
 void XLink::receiveDataToken(ticks_t time, uint8_t value)
 {
-  // TODO
-  assert(0);
+  if (buf.empty()) {
+    parent->getParent()->getScheduler().push(*this, time + tokDelay);
+  }
+  buf.push_back(Token(value));
+  //assert(0 && "Untested");
 }
 
 void XLink::receiveDataTokens(ticks_t time, uint8_t *values, unsigned num)
 {
-  // TODO
-  assert(0);
+  if (buf.empty()) {
+    parent->getParent()->getScheduler().push(*this, time + tokDelay);
+  }
+  for (size_t i = 0; i < num; i += 1) {
+    buf.push_back(Token(values[i]));
+  }
+  //assert(0 && "Untested");
 }
 
 bool XLink::openRoute()
@@ -137,9 +145,9 @@ bool XLink::forward(ticks_t time, Token &t) {
   if (t.isControl()) {
     dest->receiveCtrlToken(time, value);
     if (value == CT_END || value == CT_PAUSE) {
-      assert(0 && "Handle END/PAUSE");
       inPacket = false;
       dest = 0;
+      release(time);
     }
   } else {
     dest->receiveDataToken(time, value);
@@ -162,7 +170,7 @@ void XLink::run(ticks_t time) {
         issuedCredit = true;
         buf.pop_front();
         uint8_t credit = CT_CREDIT64;
-        destLink->receiveCtrlToken(time + tokDelay, credit);
+        destLink->receiveCtrlToken(time, credit);
       }
       break;
     case CT_CREDIT64:
@@ -200,7 +208,7 @@ void XLink::run(ticks_t time) {
 void XLink::receiveCtrlToken(ticks_t time, uint8_t value)
 {
   if (buf.empty()) {
-    parent->getParent()->getScheduler().push(*this, time);
+    parent->getParent()->getScheduler().push(*this, time + tokDelay);
   }
   buf.push_back(Token(value, true));
   return;
@@ -208,7 +216,7 @@ void XLink::receiveCtrlToken(ticks_t time, uint8_t value)
 
 void XLink::release(ticks_t time)
 {
-  XLinkGroup *g = &parent->xLinkGroups[direction];
+  XLinkGroup *g = &getDestXLink()->parent->xLinkGroups[direction];
   if (g->queue.empty()) {
     source = 0;
     destID = 0;
