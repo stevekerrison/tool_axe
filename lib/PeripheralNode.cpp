@@ -45,6 +45,16 @@ ChanEndpoint *PeripheralNode::getLocalChanendDest(ResourceID ID, uint64_t *tokDe
   return nullptr;
 }
 
+ChanEndpoint *PeripheralNode::getNextEndpoint(ResourceID ID) {
+  // If traffic is for a config reg, assume it's for us, otherwise,
+  // hopefully it's outgoing.
+  if (ID.isConfig() && ID.num() == RES_CONFIG_SSCTRL) {
+    return &sswitch;
+  } else {
+    return getXLinkForDirection(0);
+  }
+}
+
 void PeripheralNode::run(ticks_t time)
 {
     assert(0);//handleTokens(time);

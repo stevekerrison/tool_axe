@@ -16,6 +16,7 @@ public:
   void finalize() override;
   ChanEndpoint *getOutgoingChanendDest(ResourceID ID, uint64_t *tokDelay = 0) override;
   ChanEndpoint *getLocalChanendDest(ResourceID ID, uint64_t *tokDelay = 0) override;
+  ChanEndpoint *getNextEndpoint(ResourceID ID) override;
   void run(ticks_t time) override;
 };
 

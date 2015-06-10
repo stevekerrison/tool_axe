@@ -95,7 +95,7 @@ void SSwitch::handleRequest(ticks_t time, const Request &request)
   ResourceID destID = ResourceID::chanendID(request.returnNum,
                                             request.returnNode);
   Tracer *tracer = parent->getParent()->getTracer();
-  ChanEndpoint *dest = parent->getNextEndpoint(destID);
+  dest = parent->getNextEndpoint(destID);
   if (request.write) {
     ack = regs.write(time, request.regNum, request.data);
     if (tracer) {
@@ -141,7 +141,7 @@ void SSwitch::handleRequest(ticks_t time, const Request &request)
   }
   buf[responseLength++] = Token(CT_END, true);
   if (!dest->canAcceptTokens(responseLength)) {
-    assert(0 && "TODO");
+    return; //assert(0 && "TODO SSwitch dest cannot accept tokens");
   }
   for (unsigned i = 0; i < responseLength; i++) {
     if (buf[i].isControl()) {
@@ -161,8 +161,9 @@ void SSwitch::notifyDestClaimed(ticks_t time)
 
 void SSwitch::notifyDestCanAcceptTokens(ticks_t time, unsigned tokens)
 {
-  // TODO
-  assert(0);
+  if (tokens >= responseLength) {
+    parent->getParent()->getScheduler().push(*this, time + 1);
+  }
 }
 
 bool SSwitch::canAcceptToken()
@@ -227,6 +228,19 @@ void SSwitch::receiveCtrlToken(ticks_t time, uint8_t value)
   buf[recievedTokens++] = Token(value, true);
 }
 
+void SSwitch::sendResponse(ticks_t time) {
+  if (!dest->canAcceptTokens(responseLength)) {
+    assert(0 && "Should never happen");
+  }
+  for (unsigned i = 0; i < responseLength; i++) {
+    if (buf[i].isControl()) {
+      dest->receiveCtrlToken(time, buf[i].getValue());
+    } else {
+      dest->receiveDataToken(time, buf[i].getValue());
+    }
+  }
+}
+
 void SSwitch::handleTokens(ticks_t time)
 {
     size_t lim = parent->getNumXLinks();
@@ -237,6 +251,10 @@ void SSwitch::handleTokens(ticks_t time)
 
 void SSwitch::run(ticks_t time)
 {
+  if (sendingResponse) {
+    sendResponse(time);
+  } else {
     handleTokens(time);
+  }
     //scheduler->push(*this, time + 1);
 }

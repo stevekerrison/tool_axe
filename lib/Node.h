@@ -47,7 +47,7 @@ class XLink : public Runnable, public ChanEndpoint {
   XLinkBuffer buf;
 protected:
   bool openRoute();
-  bool forward(ticks_t time, Token &t);
+  bool forward(ticks_t time, Token t);
 public:
   XLink();
   Node *getDestNode() { return destNode; }
@@ -146,7 +146,7 @@ public:
   /// this node.
   virtual ChanEndpoint *getOutgoingChanendDest(ResourceID ID, uint64_t *tokDelay = 0);
   virtual ChanEndpoint *getLocalChanendDest(ResourceID ID, uint64_t *tokDelay = 0) = 0;
-  ChanEndpoint *getNextEndpoint(ResourceID ID);
+  virtual ChanEndpoint *getNextEndpoint(ResourceID ID);
   uint8_t getDirection(unsigned num) const { return directions[num]; }
   void setDirection(unsigned num, uint8_t value) { directions[num] = value; }
   Type getType() const { return type; }

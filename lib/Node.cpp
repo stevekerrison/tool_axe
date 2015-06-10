@@ -49,7 +49,7 @@ bool XLink::isConnected() const
 
 void XLink::setTokDelay() {
   uint8_t bps = isFiveWire() ? 2 : 1;
-  tokDelay = 8/bps * interSymbolDelay + interTokenDelay;
+  tokDelay = (8/bps - 1) * interSymbolDelay + interTokenDelay;
 }
 
 void XLink::setDirection(uint8_t value)
@@ -76,18 +76,17 @@ void XLink::notifyDestClaimed(ticks_t time)
 
 void XLink::notifyDestCanAcceptTokens(ticks_t time, unsigned tokens)
 {
-  // TODO
-  assert(0);
+  parent->getParent()->getScheduler().push(*this, time);
 }
 
 bool XLink::canAcceptToken()
 {
-  return XLINK_BUFFER_SIZE - buf.size() > 0;
+  return issuedCredit && buf.remaining() > 0;
 }
 
 bool XLink::canAcceptTokens(unsigned tokens)
 {
-  return XLINK_BUFFER_SIZE - buf.size() >= tokens;
+  return issuedCredit && buf.remaining() >= tokens;
 }
 
 void XLink::receiveDataToken(ticks_t time, uint8_t value)
@@ -95,7 +94,7 @@ void XLink::receiveDataToken(ticks_t time, uint8_t value)
   if (buf.empty()) {
     parent->getParent()->getScheduler().push(*this, time + tokDelay);
   }
-  buf.push_back(Token(value));
+  buf.push_back(Token(value, false));
   //assert(0 && "Untested");
 }
 
@@ -105,7 +104,7 @@ void XLink::receiveDataTokens(ticks_t time, uint8_t *values, unsigned num)
     parent->getParent()->getScheduler().push(*this, time + tokDelay);
   }
   for (size_t i = 0; i < num; i += 1) {
-    buf.push_back(Token(values[i]));
+    buf.push_back(Token(values[i], false));
   }
   //assert(0 && "Untested");
 }
@@ -115,17 +114,24 @@ bool XLink::openRoute()
   if (dest)
     return true;
   dest = parent->getNextEndpoint(destID);
+  
   if (!dest) {
     // TODO if dest in unset should give a link error exception.
     junkPacket = true;
-  } else if (!dest->claim(this, junkPacket)) {
-    return false;
+  } else {
+    ChanEndpoint *ce = dest->claim(this, junkPacket);
+    if (!ce) {
+      return false;
+    } else {
+      //Destination may be refined by successfull claim().
+      dest = ce;
+    }
   }
   inPacket = true;
   return true;
 }
 
-bool XLink::forward(ticks_t time, Token &t) {
+bool XLink::forward(ticks_t time, Token t) {
   if (!openRoute()) {
     assert(0 && "Handle XLink wait on route");
     return false;
@@ -139,7 +145,6 @@ bool XLink::forward(ticks_t time, Token &t) {
     return true;
   }
   if (!dest->canAcceptToken()) {
-    assert(0 && "Handle XLink wait on buffer");
     return false;
   }
   if (t.isControl()) {
@@ -181,13 +186,13 @@ void XLink::run(ticks_t time) {
       break;
     case CT_CREDIT16:
       if (outputCredit == 0 && source) {
-        destLink->source->notifyDestCanAcceptTokens(time, 2);
+        source->notifyDestCanAcceptTokens(time, 2);
       }
       outputCredit += 16;
       break;
     case CT_CREDIT8:
       if (outputCredit == 0 && source) {
-        destLink->source->notifyDestCanAcceptTokens(time, 8);
+        source->notifyDestCanAcceptTokens(time, 8);
       }
       outputCredit += 8;
       break;
@@ -199,16 +204,19 @@ void XLink::run(ticks_t time) {
   }
   if (canpop) {
     buf.pop_front();
+    if (source) {
+      source->notifyDestCanAcceptTokens(time, buf.remaining());
+    }
   }
   if (!buf.empty()) {
-    parent->getParent()->getScheduler().push(*this, time + tokDelay);
+    parent->getParent()->getScheduler().push(*this, time + getDestXLink()->tokDelay);
   }
 }
 
 void XLink::receiveCtrlToken(ticks_t time, uint8_t value)
 {
   if (buf.empty()) {
-    parent->getParent()->getScheduler().push(*this, time + tokDelay);
+    parent->getParent()->getScheduler().push(*this, time + getDestXLink()->tokDelay);
   }
   buf.push_back(Token(value, true));
   return;
@@ -222,8 +230,8 @@ void XLink::release(ticks_t time)
     destID = 0;
     return;
   }
-  source = queue.front();
-  queue.pop();
+  source = g->queue.front();
+  g->queue.pop();
   source->notifyDestClaimed(time);
 }
 
@@ -330,6 +338,9 @@ void Node::setNodeNumberBits(unsigned value)
 {
   nodeNumberBits = value;
   directions.resize(nodeNumberBits);
+  for (auto &dir: directions) {
+    dir = 0;
+  }
 }
 
 unsigned Node::getNodeNumberBits() const
