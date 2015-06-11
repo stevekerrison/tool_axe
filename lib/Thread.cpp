@@ -32,6 +32,7 @@ Thread::Thread() :
 {
   time = 0;
   pc = 0;
+  std::fill_n(regs, Register::NUM_REGISTERS, 0xf00dcafe);
   regs[KEP] = 0;
   regs[KSP] = 0;
   regs[SPC] = 0;
