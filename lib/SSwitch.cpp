@@ -45,6 +45,28 @@ static void write32_be(Token *p, uint32_t value)
   p[3] = Token(value & 0xff);
 }
 
+bool SSwitch::openRoute()
+{
+  if (dest) {
+    return true;
+  }
+  dest = parent->getNextEndpoint(destID);
+  if (!dest) {
+    // TODO if dest in unset should give a link error exception.
+    junkPacket = true;
+  } else {
+    ChanEndpoint *ce = dest->claim(this, junkPacket);
+    if (!ce) {
+      return false;
+    } else {
+      //Destination may be refined by successfull claim().
+      dest = ce;
+    }
+  }
+  inPacket = true;
+  return true;
+}
+
 static bool containsControlToken(const Token *p, unsigned size)
 {
   for (unsigned i = 0; i < size; ++i) {
@@ -94,8 +116,8 @@ void SSwitch::handleRequest(ticks_t time, const Request &request)
   uint32_t value = 0;
   ResourceID destID = ResourceID::chanendID(request.returnNum,
                                             request.returnNode);
+  this->destID = destID.id;
   Tracer *tracer = parent->getParent()->getTracer();
-  dest = parent->getNextEndpoint(destID);
   if (request.write) {
     ack = regs.write(time, request.regNum, request.data);
     if (tracer) {
@@ -115,18 +137,10 @@ void SSwitch::handleRequest(ticks_t time, const Request &request)
         tracer->SSwitchNack(*parent, destID);
     }
   }
-  if (!dest)
+  if (request.returnNum == 0xff) { //Null chanend, abandon ship!
+    dest = 0;
     return;
-  bool junkPacket = false;
-  ChanEndpoint *ce = dest->claim(this, junkPacket);
-  if (!ce) {
-    assert(0 && "TODO");
-  } else {
-    //Potentially refine destination after claim()
-    dest = ce;
   }
-  if (junkPacket)
-    return;
   sendingResponse = true;
   sentTokens = 0;
   responseLength = 0;
@@ -140,6 +154,11 @@ void SSwitch::handleRequest(ticks_t time, const Request &request)
     buf[responseLength++] = Token(CT_NACK, true);
   }
   buf[responseLength++] = Token(CT_END, true);
+  if (!openRoute()) {
+    return;
+  }
+  if (junkPacket)
+    return;
   if (!dest->canAcceptTokens(responseLength)) {
     return; //assert(0 && "TODO SSwitch dest cannot accept tokens");
   }
@@ -150,6 +169,7 @@ void SSwitch::handleRequest(ticks_t time, const Request &request)
       dest->receiveDataToken(time, buf[i].getValue());
     }
   }
+  dest = 0;
   sendingResponse = false;
 }
 
@@ -161,7 +181,7 @@ void SSwitch::notifyDestClaimed(ticks_t time)
 
 void SSwitch::notifyDestCanAcceptTokens(ticks_t time, unsigned tokens)
 {
-  if (tokens >= responseLength) {
+  if (tokens >= responseLength && sendingResponse) {
     parent->getParent()->getScheduler().push(*this, time + 1);
   }
 }
@@ -239,6 +259,8 @@ void SSwitch::sendResponse(ticks_t time) {
       dest->receiveDataToken(time, buf[i].getValue());
     }
   }
+  dest = 0;
+  sendingResponse = false;
 }
 
 void SSwitch::handleTokens(ticks_t time)
@@ -254,7 +276,7 @@ void SSwitch::run(ticks_t time)
   if (sendingResponse) {
     sendResponse(time);
   } else {
-    handleTokens(time);
+    //handleTokens(time);
   }
     //scheduler->push(*this, time + 1);
 }

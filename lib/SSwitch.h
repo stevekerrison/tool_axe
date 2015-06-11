@@ -43,6 +43,7 @@ private:
   void handleRequest(ticks_t time, const Request &request);
   void handleTokens(ticks_t time);
   void sendResponse(ticks_t time);
+  bool openRoute();
 public:
   SSwitch(Node *parent);
   void initRegisters() { regs.initRegisters(); }

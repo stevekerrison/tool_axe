@@ -62,7 +62,7 @@ void XLink::setDirection(uint8_t value)
 }
 
 void XLink::hello(ticks_t time, bool value) {
-  if (value) {
+  if (value && isConnected()) {
     outputCredit = 0;
     getDestXLink()->receiveCtrlToken(time + tokDelay, CT_HELLO);
   }
@@ -76,7 +76,9 @@ void XLink::notifyDestClaimed(ticks_t time)
 
 void XLink::notifyDestCanAcceptTokens(ticks_t time, unsigned tokens)
 {
-  parent->getParent()->getScheduler().push(*this, time);
+  if (!buf.empty()) {
+    parent->getParent()->getScheduler().push(*this, time);
+  }
 }
 
 bool XLink::canAcceptToken()
@@ -118,6 +120,7 @@ bool XLink::openRoute()
   if (!dest) {
     // TODO if dest in unset should give a link error exception.
     junkPacket = true;
+    assert(!"Useful message");
   } else {
     ChanEndpoint *ce = dest->claim(this, junkPacket);
     if (!ce) {
@@ -128,6 +131,7 @@ bool XLink::openRoute()
     }
   }
   inPacket = true;
+  junkPacket = false;
   return true;
 }
 
