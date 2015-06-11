@@ -244,7 +244,7 @@ void XLink::release(ticks_t time)
 ChanEndpoint *XLinkGroup::claim(ChanEndpoint *newSource, bool &junkPacket)
 {
   for (auto &xLink: xLinks) {
-    if (!xLink->getDestXLink()->source && xLink->isConnected()) {
+    if (xLink->isConnected() && !xLink->getDestXLink()->source) {
       xLink->getDestXLink()->source = newSource;
       xLink->getDestXLink()->destID = newSource->getDestID();
       // Change the ChanEndpoint to the actual link that will be used.
