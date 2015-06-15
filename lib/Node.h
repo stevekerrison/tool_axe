@@ -64,9 +64,9 @@ public:
   uint8_t getNetwork() const { return network; }
   void setDirection(uint8_t value);
   uint8_t getDirection() const { return direction; }
-  void setInterTokenDelay(uint16_t value) { interTokenDelay = value; }
+  void setInterTokenDelay(uint16_t value) { interTokenDelay = value + 2; }
   uint16_t getInterTokenDelay() const { return interTokenDelay; }
-  void setInterSymbolDelay(uint16_t value) { interSymbolDelay = value; }
+  void setInterSymbolDelay(uint16_t value) { interSymbolDelay = value + 1; }
   uint16_t getInterSymbolDelay() const { return interSymbolDelay; }
   bool isConnected() const;
   void run(ticks_t time);

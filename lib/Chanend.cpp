@@ -125,7 +125,7 @@ outt(Thread &thread, uint8_t value, ticks_t time)
     pausedOut = &thread;
     return DESCHEDULE;
   }
-  dest->receiveDataToken(time + tokDelay, value);
+  dest->receiveDataToken(time + 12, value);
   return CONTINUE;
 }
 
@@ -150,7 +150,7 @@ out(Thread &thread, uint32_t value, ticks_t time)
     static_cast<uint8_t>(value)
   };
   //TODO: Account for four-token delay here
-  dest->receiveDataTokens(time + 4, tokens, 4);
+  dest->receiveDataTokens(time + 12, tokens, 4);
   return CONTINUE;
 }
 
@@ -172,7 +172,7 @@ outct(Thread &thread, uint8_t value, ticks_t time)
     pausedOut = &thread;
     return DESCHEDULE;
   }
-  dest->receiveCtrlToken(time, value);
+  dest->receiveCtrlToken(time + 12, value);
   if (value == CT_END || value == CT_PAUSE) {
     inPacket = false;
     dest = 0;

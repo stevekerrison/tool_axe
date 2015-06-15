@@ -64,7 +64,7 @@ void XLink::setDirection(uint8_t value)
 void XLink::hello(ticks_t time, bool value) {
   if (value && isConnected()) {
     outputCredit = 0;
-    getDestXLink()->receiveCtrlToken(time + tokDelay, CT_HELLO);
+    getDestXLink()->receiveCtrlToken(time, CT_HELLO);
   }
 }
 
@@ -94,19 +94,20 @@ bool XLink::canAcceptTokens(unsigned tokens)
 void XLink::receiveDataToken(ticks_t time, uint8_t value)
 {
   if (buf.empty()) {
-    parent->getParent()->getScheduler().push(*this, time + tokDelay);
+    parent->getParent()->getScheduler().push(*this, time);
   }
-  buf.push_back(Token(value, false, time + tokDelay));
+  buf.push_back(Token(value, false, time));
   //assert(0 && "Untested");
 }
 
 void XLink::receiveDataTokens(ticks_t time, uint8_t *values, unsigned num)
 {
   if (buf.empty()) {
-    parent->getParent()->getScheduler().push(*this, time + tokDelay);
+    parent->getParent()->getScheduler().push(*this, time);
   }
   for (size_t i = 0; i < num; i += 1) {
-    buf.push_back(Token(values[i], false, time + tokDelay));
+    buf.push_back(Token(values[i], false, time));
+    time += tokDelay;
   }
   //assert(0 && "Untested");
 }
@@ -170,6 +171,11 @@ void XLink::run(ticks_t time) {
   XLink *destLink = getDestXLink();
   assert(!buf.empty());
   Token t = buf.front();
+  if (t.getTime() > time) {
+    parent->getParent()->getScheduler().push(*this, t.getTime());
+    return;
+  }
+  time += getDestXLink()->tokDelay;
   uint8_t value = t.getValue();
   if (t.isControl()) {
     switch (value) {
@@ -208,21 +214,21 @@ void XLink::run(ticks_t time) {
   }
   if (canpop) {
     buf.pop_front();
-    if (source) {
+    if (source && buf.remaining()) {
       source->notifyDestCanAcceptTokens(time, buf.remaining());
     }
   }
   if (!buf.empty()) {
-    parent->getParent()->getScheduler().push(*this, time + getDestXLink()->tokDelay);
+    parent->getParent()->getScheduler().push(*this, time);
   }
 }
 
 void XLink::receiveCtrlToken(ticks_t time, uint8_t value)
 {
   if (buf.empty()) {
-    parent->getParent()->getScheduler().push(*this, time + getDestXLink()->tokDelay);
+    parent->getParent()->getScheduler().push(*this, time);
   }
-  buf.push_back(Token(value, true, time + getDestXLink()->tokDelay));
+  buf.push_back(Token(value, true, time));
   return;
 }
 
