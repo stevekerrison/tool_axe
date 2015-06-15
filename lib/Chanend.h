@@ -70,6 +70,8 @@ private:
 
   void setPausedIn(Thread &t, bool wordInput);
 
+  bool tokensReady(Thread &thread, ticks_t time, unsigned nToks);
+
 public:
   Chanend() : EventableResource(RES_TYPE_CHANEND) { }
 

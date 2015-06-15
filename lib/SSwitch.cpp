@@ -37,12 +37,12 @@ static uint32_t read32_be(const Token *p)
          (p[2].getValue() << 8) | p[3].getValue();
 }
 
-static void write32_be(Token *p, uint32_t value)
+static void write32_be(ticks_t time, Token *p, uint32_t value)
 {
-  p[0] = Token(value >> 24);
-  p[1] = Token((value >> 16) & 0xff);
-  p[2] = Token((value >> 8) & 0xff);
-  p[3] = Token(value & 0xff);
+  p[0] = Token(value >> 24, false, time);
+  p[1] = Token((value >> 16) & 0xff, false, time);
+  p[2] = Token((value >> 8) & 0xff, false, time);
+  p[3] = Token(value & 0xff, false, time);
 }
 
 bool SSwitch::openRoute()
@@ -144,33 +144,25 @@ void SSwitch::handleRequest(ticks_t time, const Request &request)
   sendingResponse = true;
   sentTokens = 0;
   responseLength = 0;
+  time += 8;
   if (ack) {
-    buf[responseLength++] = Token(CT_ACK, true);
+    buf[responseLength++] = Token(CT_ACK, true, time);
     if (!request.write) {
-      write32_be(&buf[responseLength], value);
+      write32_be(time, &buf[responseLength], value);
       responseLength += 4;
     }
   } else {
-    buf[responseLength++] = Token(CT_NACK, true);
+    buf[responseLength++] = Token(CT_NACK, true, time);
   }
-  buf[responseLength++] = Token(CT_END, true);
+  buf[responseLength++] = Token(CT_END, true, time);
   if (!openRoute()) {
     return;
   }
   if (junkPacket)
     return;
-  if (!dest->canAcceptTokens(responseLength)) {
-    return; //assert(0 && "TODO SSwitch dest cannot accept tokens");
-  }
-  for (unsigned i = 0; i < responseLength; i++) {
-    if (buf[i].isControl()) {
-      dest->receiveCtrlToken(time, buf[i].getValue());
-    } else {
-      dest->receiveDataToken(time, buf[i].getValue());
-    }
-  }
-  dest = 0;
-  sendingResponse = false;
+  // We used to respond straight away, but now we delay
+  parent->getParent()->getScheduler().push(*this, time);
+  return;
 }
 
 void SSwitch::notifyDestClaimed(ticks_t time)
@@ -182,7 +174,7 @@ void SSwitch::notifyDestClaimed(ticks_t time)
 void SSwitch::notifyDestCanAcceptTokens(ticks_t time, unsigned tokens)
 {
   if (tokens >= responseLength && sendingResponse) {
-    parent->getParent()->getScheduler().push(*this, time + 1);
+    parent->getParent()->getScheduler().push(*this, time);
   }
 }
 
@@ -205,7 +197,7 @@ void SSwitch::receiveDataToken(ticks_t time, uint8_t value)
     junkIncomingTokens = true;
     return;
   }
-  buf[recievedTokens++] = Token(value);
+  buf[recievedTokens++] = Token(value, false, time);
 }
 
 void SSwitch::receiveDataTokens(ticks_t time, uint8_t *values, unsigned num)
@@ -218,7 +210,7 @@ void SSwitch::receiveDataTokens(ticks_t time, uint8_t *values, unsigned num)
     return;
   }
   for (unsigned i = 0; i < num; i++) {
-    buf[recievedTokens++] = Token(values[i]);
+    buf[recievedTokens++] = Token(values[i], false, time);
   }
 }
 
@@ -245,12 +237,12 @@ void SSwitch::receiveCtrlToken(ticks_t time, uint8_t value)
     junkIncomingTokens = true;
     return;
   }
-  buf[recievedTokens++] = Token(value, true);
+  buf[recievedTokens++] = Token(value, true, time);
 }
 
 void SSwitch::sendResponse(ticks_t time) {
   if (!dest->canAcceptTokens(responseLength)) {
-    assert(0 && "Should never happen");
+    return;
   }
   for (unsigned i = 0; i < responseLength; i++) {
     if (buf[i].isControl()) {

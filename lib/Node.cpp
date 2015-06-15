@@ -96,7 +96,7 @@ void XLink::receiveDataToken(ticks_t time, uint8_t value)
   if (buf.empty()) {
     parent->getParent()->getScheduler().push(*this, time + tokDelay);
   }
-  buf.push_back(Token(value, false));
+  buf.push_back(Token(value, false, time + tokDelay));
   //assert(0 && "Untested");
 }
 
@@ -106,7 +106,7 @@ void XLink::receiveDataTokens(ticks_t time, uint8_t *values, unsigned num)
     parent->getParent()->getScheduler().push(*this, time + tokDelay);
   }
   for (size_t i = 0; i < num; i += 1) {
-    buf.push_back(Token(values[i], false));
+    buf.push_back(Token(values[i], false, time + tokDelay));
   }
   //assert(0 && "Untested");
 }
@@ -222,7 +222,7 @@ void XLink::receiveCtrlToken(ticks_t time, uint8_t value)
   if (buf.empty()) {
     parent->getParent()->getScheduler().push(*this, time + getDestXLink()->tokDelay);
   }
-  buf.push_back(Token(value, true));
+  buf.push_back(Token(value, true, time + getDestXLink()->tokDelay));
   return;
 }
 

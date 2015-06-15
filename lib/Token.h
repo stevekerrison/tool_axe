@@ -6,7 +6,11 @@
 #ifndef _Token_h_
 #define _Token_h_
 
+#include "Config.h"
 #include <stdint.h>
+
+#undef NDEBUG
+#include <cassert>
 
 namespace axe {
 
@@ -28,10 +32,11 @@ class Token {
 private:
   uint8_t value;
   bool control;
+  ticks_t time;
   
 public:
-  Token(uint8_t v = 0, bool c = false)
-  : value(v), control(c) { }
+  Token(uint8_t v = 0, bool c = false, ticks_t time = 0)
+  : value(v), control(c), time(time) { }
 
   bool isControl() const {
     return control;
@@ -47,6 +52,10 @@ public:
 
   bool isCtPause() const {
     return control && value == CT_PAUSE;
+  }
+
+  ticks_t getTime() const {
+    return time;
   }
 
   operator uint8_t() const { return value; }

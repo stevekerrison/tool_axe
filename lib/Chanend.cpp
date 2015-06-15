@@ -23,14 +23,14 @@ bool Chanend::canAcceptTokens(unsigned tokens)
 
 void Chanend::receiveDataToken(ticks_t time, uint8_t value)
 {
-  buf.push_back(Token(value));
+  buf.push_back(Token(value, false, time));
   update(time);
 }
 
 void Chanend::receiveDataTokens(ticks_t time, uint8_t *values, unsigned num)
 {
   for (unsigned i = 0; i < num; i++) {
-    buf.push_back(Token(values[i]));
+    buf.push_back(Token(values[i], false, time));
   }
   update(time);
 }
@@ -39,7 +39,7 @@ void Chanend::receiveCtrlToken(ticks_t time, uint8_t value)
 {
   switch (value) {
   case CT_END:
-    buf.push_back(Token(value, true));
+    buf.push_back(Token(value, true, time));
     release(time);
     update(time);
     break;
@@ -47,7 +47,7 @@ void Chanend::receiveCtrlToken(ticks_t time, uint8_t value)
     release(time);
     break;
   default:
-    buf.push_back(Token(value, true));
+    buf.push_back(Token(value, true, time));
     update(time);
     break;
   }
@@ -150,7 +150,7 @@ out(Thread &thread, uint32_t value, ticks_t time)
     static_cast<uint8_t>(value)
   };
   //TODO: Account for four-token delay here
-  dest->receiveDataTokens(time, tokens, 4);
+  dest->receiveDataTokens(time + 4, tokens, 4);
   return CONTINUE;
 }
 
@@ -232,6 +232,8 @@ Resource::ResOpResult Chanend::
 intoken(Thread &thread, ticks_t time, uint32_t &val)
 {
   bool isCt;
+  if (!tokensReady(thread, time, 1))
+    return DESCHEDULE;
   if (!testct(thread, time, isCt)) {
     return DESCHEDULE;
   }
@@ -245,6 +247,8 @@ Resource::ResOpResult Chanend::
 inct(Thread &thread, ticks_t time, uint32_t &val)
 {
   bool isCt;
+  if (!tokensReady(thread, time, 1))
+    return DESCHEDULE;
   if (!testct(thread, time, isCt)) {
     return DESCHEDULE;
   }
@@ -258,6 +262,8 @@ Resource::ResOpResult Chanend::
 chkct(Thread &thread, ticks_t time, uint32_t value)
 {
   bool isCt;
+  if (!tokensReady(thread, time, 1))
+    return DESCHEDULE;
   if (!testct(thread, time, isCt)) {
     return DESCHEDULE;
   }
@@ -271,6 +277,8 @@ Resource::ResOpResult Chanend::
 in(Thread &thread, ticks_t time, uint32_t &value)
 {
   unsigned Position;
+  if (!tokensReady(thread, time, 4))
+    return DESCHEDULE;
   if (!testwct(thread, time, Position))
     return DESCHEDULE;
   if (Position != 0)
@@ -297,6 +305,28 @@ void Chanend::update(ticks_t time)
   pausedIn->time = time;
   pausedIn->schedule();
   pausedIn = 0;
+}
+
+bool Chanend::tokensReady(Thread &thread, ticks_t time, unsigned nToks) {
+  if (!buf.empty()) {
+    unsigned tc = 0;
+    ticks_t maxtime = 0;
+    for (unsigned i = 0; i < buf.size() && i < 4; i += 1) {
+      tc += 1;
+      maxtime = std::max(maxtime, buf[i].getTime());
+    }
+    if (tc >= nToks) {
+      if (maxtime <= time) {
+        return true;
+      } else {
+        setPausedIn(thread, nToks == 4);
+        update(maxtime);
+        return false;
+      }
+    }
+  }
+  setPausedIn(thread, nToks == 4);
+  return false;
 }
 
 void Chanend::run(ticks_t time)
