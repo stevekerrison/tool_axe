@@ -62,7 +62,7 @@ public:
   }
 
   uint32_t getHalfPeriod() {
-    return divide * (CYCLES_PER_TICK / 2);
+    return (divide * CYCLES_PER_TICK) / 2;
   }
 
   void attachPort(Port *port) {
