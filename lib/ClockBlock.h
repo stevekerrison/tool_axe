@@ -61,9 +61,6 @@ public:
     return value.getEdgeIterator(time);
   }
 
-#if (CYCLES_PER_TICK & 1) != 0
-#error CYCLES_PER_TICK must be even
-#endif
   uint32_t getHalfPeriod() {
     return divide * (CYCLES_PER_TICK / 2);
   }

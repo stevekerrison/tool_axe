@@ -55,7 +55,7 @@
 #define XLINK_BUFFER_SIZE 8
 
 /// Number of processor cycles per 100MHz timer tick
-#define CYCLES_PER_TICK 4
+#define CYCLES_PER_TICK 5
 
 typedef uint64_t ticks_t;
 
