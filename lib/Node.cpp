@@ -6,6 +6,7 @@
 #include <algorithm>
 #include "Node.h"
 #include "BitManip.h"
+#include "Tracer.h"
 
 #undef NDEBUG
 #include <cassert>
@@ -97,6 +98,8 @@ void XLink::receiveDataToken(ticks_t time, uint8_t value)
     parent->getParent()->getScheduler().push(*this, time);
   }
   buf.push_back(Token(value, false, time));
+  Tracer *tracer = parent->getParent()->getTracer();
+  tracer->LinkToken(*parent, linkNum, time, value, false);
   //assert(0 && "Untested");
 }
 
@@ -105,7 +108,9 @@ void XLink::receiveDataTokens(ticks_t time, uint8_t *values, unsigned num)
   if (buf.empty()) {
     parent->getParent()->getScheduler().push(*this, time);
   }
+  Tracer *tracer = parent->getParent()->getTracer();
   for (size_t i = 0; i < num; i += 1) {
+    tracer->LinkToken(*parent, linkNum, time, values[i], false);
     buf.push_back(Token(values[i], false, time));
     time += tokDelay;
   }
@@ -229,6 +234,8 @@ void XLink::receiveCtrlToken(ticks_t time, uint8_t value)
     parent->getParent()->getScheduler().push(*this, time);
   }
   buf.push_back(Token(value, true, time));
+  Tracer *tracer = parent->getParent()->getTracer();
+  tracer->LinkToken(*parent, linkNum, time, value, true);
   return;
 }
 
@@ -313,9 +320,12 @@ Node::Node(Type t, unsigned numXLinks) :
   nodeNumberBits(16)
 {
   xLinks.resize(numXLinks);
-  for (auto &l : xLinks) {
-    l.parent = this;
-    xLinkGroups[l.direction].xLinks.insert(&l);
+  int i = 0;
+  for (size_t i = 0; i < xLinks.size(); i += 1) {
+    XLink *l = &xLinks[i];
+    l->parent = this;
+    l->linkNum = i;
+    xLinkGroups[l->direction].xLinks.insert(l);
   }
 }
 

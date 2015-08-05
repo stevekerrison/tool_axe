@@ -41,6 +41,7 @@ class XLink : public Runnable, public ChanEndpoint {
   uint16_t interSymbolDelay;
   uint8_t outputCredit;
   bool issuedCredit;
+  uint32_t linkNum;
   ticks_t tokDelay;
   /// Input buffer.
   typedef ring_buffer<Token, XLINK_BUFFER_SIZE> XLinkBuffer;

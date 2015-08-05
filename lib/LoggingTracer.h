@@ -85,6 +85,9 @@ namespace axe {
     void SSwitchAck(const Node &node, uint32_t dest) override;
     void SSwitchAck(const Node &node, uint32_t data, uint32_t dest) override;
     
+    void LinkToken(const Node &node, uint32_t link, ticks_t time,
+                   uint8_t val, bool ctrl) override;
+    
     void exception(const Thread &t, uint32_t et, uint32_t ed,
                    uint32_t sed, uint32_t ssr, uint32_t spc) override;
     

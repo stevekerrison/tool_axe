@@ -13,6 +13,7 @@
 #include "InstructionProperties.h"
 #include "InstructionTraceInfo.h"
 #include "InstructionOpcode.h"
+#include "Token.h"
 
 #include "llvm/Support/raw_ostream.h"
 #include <iomanip>
@@ -466,6 +467,20 @@ void LoggingTracer::regWrite(Reg reg, uint32_t value)
   }
   printRegWrite(reg, value, first);
   emittedLineStart = true;
+}
+
+void LoggingTracer::LinkToken(const Node &node, uint32_t linkNum, ticks_t time,
+                              uint8_t val, bool ctrl) {
+    assert(!emittedLineStart);
+    assert(traceJson && "Currently only JSON token tracing supported");
+    Json::Value j;
+    j["nodeID"] = node.getNodeID();
+    j["token"]  = true;
+    j["time"]   = Json::UInt64(time);
+    j["link"]   = linkNum;
+    j["ctrl"]   = ctrl;
+    j["val"]    = val;
+    out << jsonwriter.write(j);
 }
 
 void LoggingTracer::SSwitchRead(const Node &node, uint32_t retAddress,

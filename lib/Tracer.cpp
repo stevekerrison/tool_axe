@@ -49,6 +49,11 @@ void Tracer::SSwitchAck(const Node &node, uint32_t data, uint32_t dest)
 {
 }
 
+void Tracer::LinkToken(const Node &node, uint32_t link, ticks_t time,
+                       uint8_t val, bool ctrl)
+{
+}
+
 void Tracer::exception(const Thread &t, uint32_t et, uint32_t ed,
                        uint32_t sed, uint32_t ssr, uint32_t spc)
 {
