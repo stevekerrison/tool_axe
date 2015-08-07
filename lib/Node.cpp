@@ -99,7 +99,8 @@ void XLink::receiveDataToken(ticks_t time, uint8_t value)
   }
   buf.push_back(Token(value, false, time));
   Tracer *tracer = parent->getParent()->getTracer();
-  tracer->LinkToken(*parent, linkNum, time, value, false);
+  XLink *destLink = getDestXLink();
+  tracer->LinkToken(*destLink->parent, destLink->linkNum, time, value, false);
   //assert(0 && "Untested");
 }
 
@@ -109,8 +110,9 @@ void XLink::receiveDataTokens(ticks_t time, uint8_t *values, unsigned num)
     parent->getParent()->getScheduler().push(*this, time);
   }
   Tracer *tracer = parent->getParent()->getTracer();
+  XLink *destLink = getDestXLink();
   for (size_t i = 0; i < num; i += 1) {
-    tracer->LinkToken(*parent, linkNum, time, values[i], false);
+    tracer->LinkToken(*destLink->parent, destLink->linkNum, time, values[i], false);
     buf.push_back(Token(values[i], false, time));
     time += tokDelay;
   }
@@ -235,7 +237,8 @@ void XLink::receiveCtrlToken(ticks_t time, uint8_t value)
   }
   buf.push_back(Token(value, true, time));
   Tracer *tracer = parent->getParent()->getTracer();
-  tracer->LinkToken(*parent, linkNum, time, value, true);
+  XLink *destLink = getDestXLink();
+  tracer->LinkToken(*destLink->parent, destLink->linkNum, time, value, true);
   return;
 }
 
